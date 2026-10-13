@@ -351,7 +351,7 @@ document.addEventListener("wheel", (e) => {
     e.stopPropagation();
     const stepPx = Number(el.getAttribute("data-scroll")) || 100;
     const base = scrollAnim.has(el) ? scrollAnim.get(el) : el.scrollTop;
-    animateScroll(el, base + (e.deltaY > 0 ? stepPx : -stepPx));
+    animateScroll(el, base + (e.deltaY > 0 ? -stepPx : stepPx)); // Gameface: deltaY > 0 = wheel up
 }, { capture: true, passive: false });
 
 document.addEventListener("keydown", (e) => {
