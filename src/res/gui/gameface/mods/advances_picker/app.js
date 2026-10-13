@@ -99,13 +99,29 @@ function renderHeader() {
     const levels = [...new Set(data.vehicles.map((v) => v.level))].sort((a, b) => a - b).map((l) => ROMAN[l] || l);
     return `
     <div class="header">
-        <div class="header-bar"></div>
-        <div class="header-title">${esc(data.title || "Fahrzeug wählen")}</div>
-        <div class="header-sub">Stufe ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} Fahrzeuge in der Garage</div>
-        ${data.dev ? `<div class="dev-badge">DEV ${esc(data.version || "")} · F5 = neu laden</div>` : ""}
-        <div class="header-spacer"></div>
-        <div class="close-btn" data-act="close"><div class="close-x a"></div><div class="close-x b"></div></div>
+        <div class="h-left">
+            <div class="header-bar"></div>
+            <div class="header-title">${esc(data.title || "Fahrzeug wählen")}</div>
+            <div class="header-sub">Stufe ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} Fahrzeuge in der Garage</div>
+            ${data.dev ? `<div class="dev-badge">DEV ${esc(data.version || "")} · F5 = neu laden</div>` : ""}
+        </div>
+        <div class="h-center" id="headerLock">${renderLock()}</div>
+        <div class="h-right">
+            <div class="close-btn" data-act="close"><div class="close-x a"></div><div class="close-x b"></div></div>
+        </div>
     </div>`;
+}
+
+// lock-in button, centered in the header
+function renderLock() {
+    const d = data.detail;
+    if (!d) {
+        return `<div class="lock off">Einloggen</div><div class="foot-note">Wähle zuerst ein Fahrzeug</div>`;
+    }
+    const pendingAmmo = ammoChanged(d);
+    const aeBusy = !!(d.autoEquip && d.autoEquip.busy);
+    const note = aeBusy ? "Auto-Equip baut gerade die Ausrüstung ein…" : pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? `${esc(d.name)} in deinen Slot setzen` : esc(d.state);
+    return `<div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">Einloggen</div><div class="foot-note">${note}</div>`;
 }
 
 function renderFilters(count) {
@@ -292,6 +308,8 @@ function renderSideOnly() {
     side.parentNode.replaceChild(tmp.children[0], side);
     const next = document.getElementById("sideScroll");
     if (next) next.scrollTop = top;
+    const lock = document.getElementById("headerLock");
+    if (lock) lock.innerHTML = renderLock();
 }
 
 function setAmmo(cd, value) {
@@ -485,11 +503,8 @@ function renderSide() {
         return `
         <div class="side">
             <div class="side-scroll" data-scroll="120"><div class="side-hint">Wähle links ein Fahrzeug aus.<br/><br/>Danach kannst du hier Besatzung, Munition und Ausrüstung prüfen und das Fahrzeug einloggen.</div></div>
-            <div class="side-foot"><div class="lock off">Einloggen</div></div>
         </div>`;
     }
-    const pendingAmmo = ammoChanged(d);
-    const aeBusy = !!(d.autoEquip && d.autoEquip.busy);
     const missing = d.crew.filter((m) => !m.tankman).length;
     return `
     <div class="side">
@@ -512,10 +527,6 @@ function renderSide() {
             ${renderAutoEquip(d)}
             ${renderDevices(d)}
             ${renderConsumables(d)}
-        </div>
-        <div class="side-foot">
-            <div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">Einloggen</div>
-            <div class="foot-note">${aeBusy ? "Auto-Equip baut gerade die Ausrüstung ein…" : pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? "Setzt das Fahrzeug in deinen Slot" : esc(d.state)}</div>
         </div>
     </div>`;
 }

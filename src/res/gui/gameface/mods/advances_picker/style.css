@@ -714,3 +714,26 @@ body {
 .sum-n { margin-right: 12rem; font-family: PFDINMax; font-size: 15rem; color: #e2e2dc; }
 
 .sum-part { margin-right: 14rem; }
+
+/* header: title left, lock-in button centered, close right */
+.h-left, .h-right {
+    flex-grow: 1;
+    flex-basis: 0;
+    width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.h-right { justify-content: flex-end; }
+.h-center {
+    width: 340rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.h-center .lock { height: 42rem; font-size: 20rem; }
+.h-center .foot-note { margin-top: 3rem; font-size: 11rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header { height: 76rem; }
+.header-title, .header-sub, .dev-badge { white-space: nowrap; }
+.header-sub { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+.h-left .header-title { flex-shrink: 0; }
