@@ -32,7 +32,7 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.8.5'
+__version__ = '0.8.6'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -306,7 +306,8 @@ class AdvancesPickerView(ViewImpl):
          'shells': self._packShells(vehicle),
          'ammoMax': vehicle.ammoMaxSize,
          'devices': self._packDevices(vehicle),
-         'deviceSetups': self._packDeviceSetups(vehicle),
+         'deviceSetups': self._packSetups(vehicle, vehicle.optDevices, 'OPTIONAL_DEVICES_AND_BOOSTERS'),
+         'consumableSetups': self._packSetups(vehicle, vehicle.consumables, 'EQUIPMENT_AND_SHELLS'),
          'consumables': self._packConsumables(vehicle)}
 
     def _packShells(self, vehicle):
@@ -402,13 +403,14 @@ class AdvancesPickerView(ViewImpl):
              'candidates': candidates})
         return result
 
-    def _packDeviceSetups(self, vehicle):
-        # field modification "dual equipment": two optional device sets, one active
+    def _packSetups(self, vehicle, container, groupName):
+        # field modification "dual equipment" / "dual consumables": two sets per group, one active
         try:
             from post_progression_common import TankSetupGroupsId
-            if not vehicle.isSetupSwitchActive(TankSetupGroupsId.OPTIONAL_DEVICES_AND_BOOSTERS):
+            groupID = getattr(TankSetupGroupsId, groupName)
+            if not vehicle.isSetupSwitchActive(groupID):
                 return None
-            layouts = vehicle.optDevices.setupLayouts
+            layouts = container.setupLayouts
             sets = []
             for idx in (0, 1):
                 setup = layouts.setupByIndex(idx)
@@ -417,9 +419,9 @@ class AdvancesPickerView(ViewImpl):
                     for item in setup:
                         items.append({'name': _u(item.userName), 'icon': _itemIcon(item)} if item is not None else None)
                 sets.append(items)
-            return {'active': layouts.layoutIndex, 'sets': sets}
+            return {'active': layouts.layoutIndex, 'group': groupName, 'sets': sets}
         except Exception:
-            _logger.exception('reading equipment setups failed')
+            _logger.exception('reading %s setups failed', groupName)
             return None
 
     def _packConsumables(self, vehicle):
@@ -519,7 +521,7 @@ class AdvancesPickerView(ViewImpl):
                 self._filters = json.loads(args.get('filters', '{}'))
                 _saveFilters(args.get('filters', '{}'))
             elif action == 'switchSetup':
-                self._switchDeviceSetup(int(args.get('idx', 0)))
+                self._switchSetup(args.get('group', 'OPTIONAL_DEVICES_AND_BOOSTERS'), int(args.get('idx', 0)))
             elif action == 'setDevice':
                 self._setDevice(int(args.get('slot')), int(args.get('cd', 0)))
             elif action == 'setConsumable':
@@ -627,12 +629,12 @@ class AdvancesPickerView(ViewImpl):
         copy.descriptor.installOptionalDevice(item.intCD, slot)
         ActionsFactory.doAction(ActionsFactory.BUY_AND_INSTALL_OPT_DEVICES, copy, confirmOnlyExchange=True)
 
-    def _switchDeviceSetup(self, idx):
+    def _switchSetup(self, groupName, idx):
         vehicle = self._selectedVehicle()
-        if vehicle is None:
+        if vehicle is None or groupName not in ('OPTIONAL_DEVICES_AND_BOOSTERS', 'EQUIPMENT_AND_SHELLS'):
             return
         from post_progression_common import TankSetupGroupsId
-        ActionsFactory.doAction(ActionsFactory.CHANGE_SETUP_EQUIPMENTS_INDEX, vehicle, TankSetupGroupsId.OPTIONAL_DEVICES_AND_BOOSTERS, idx)
+        ActionsFactory.doAction(ActionsFactory.CHANGE_SETUP_EQUIPMENTS_INDEX, vehicle, getattr(TankSetupGroupsId, groupName), idx)
 
     def _setConsumable(self, slot, intCD):
         vehicle = self._selectedVehicle()

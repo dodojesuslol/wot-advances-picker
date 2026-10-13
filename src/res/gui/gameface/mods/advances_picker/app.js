@@ -405,6 +405,22 @@ function renderAutoEquip(d) {
     </div>`;
 }
 
+// two-set display (field modification): active set editable above, the other one read-only below
+function renderSetups(ds, note) {
+    if (!ds) return { setupHead: "", otherSetup: "" };
+    const other = ds.active === 0 ? 1 : 0;
+    const setupHead = `<div class="setup-head"><span class="setup-tag on">Set ${ds.active + 1} · aktiv</span><span class="muted">bearbeitbar</span></div>`;
+    const items = (ds.sets[other] || []).map((it) => `
+        <div class="slot mini ${it ? "" : "free"}">
+            <div class="ico" ${it ? bg(it.icon) : ""}></div>
+            <div class="t">${it ? esc(it.name) : "leer"}</div>
+        </div>`).join("");
+    const otherSetup = `
+        <div class="setup-head"><span class="setup-tag">Set ${other + 1}</span>${note ? `<span class="muted">${note}</span>` : ""}<div class="grow"></div><div class="btn small" data-setup="${other}" data-group="${ds.group}">Set ${other + 1} aktivieren</div></div>
+        <div class="slots">${items}</div>`;
+    return { setupHead, otherSetup };
+}
+
 function renderDevices(d) {
     const cards = d.devices.map((s) => {
         const it = s.item;
@@ -420,20 +436,7 @@ function renderDevices(d) {
     }).join("");
     const openSlot = d.devices.find((s) => s.slot === ui.openDev);
     const ds = d.deviceSetups;
-    let setupHead = "";
-    let otherSetup = "";
-    if (ds) {
-        const other = ds.active === 0 ? 1 : 0;
-        setupHead = `<div class="setup-head"><span class="setup-tag on">Set ${ds.active + 1} · aktiv</span><span class="muted">bearbeitbar</span></div>`;
-        const items = (ds.sets[other] || []).map((it) => `
-            <div class="slot mini ${it ? "" : "free"}">
-                <div class="ico" ${it ? bg(it.icon) : ""}></div>
-                <div class="t">${it ? esc(it.name) : "leer"}</div>
-            </div>`).join("");
-        otherSetup = `
-        <div class="setup-head"><span class="setup-tag">Set ${other + 1}</span><div class="grow"></div><div class="btn small" data-setup="${other}">Set ${other + 1} aktivieren</div></div>
-        <div class="slots">${items}</div>`;
-    }
+    const { setupHead, otherSetup } = renderSetups(ds, "");
     return `
     <div class="section">
         <div class="section-title"><div class="grow">Ausrüstung${ds ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
@@ -455,11 +458,15 @@ function renderConsumables(d) {
         </div>`;
     }).join("");
     const openSlot = d.consumables.find((s) => s.slot === ui.openCons);
+    const cs = d.consumableSetups;
+    const { setupHead, otherSetup } = renderSetups(cs, "wechselt auch das Munitions-Set");
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Verbrauchsmaterial</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="section-title"><div class="grow">Verbrauchsmaterial${cs ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
+        ${setupHead}
         <div class="slots">${cards}</div>
         ${openSlot ? renderPickList("cons", openSlot.slot, openSlot.item, openSlot.candidates, [], "Kein passendes Verbrauchsmaterial im Lager") : ""}
+        ${otherSetup}
     </div>`;
 }
 
@@ -604,7 +611,9 @@ root.addEventListener("click", (e) => {
         }
     } else if ((el = closest(e.target, "data-setup"))) {
         ui.openDev = -1;
-        send({ action: "switchSetup", idx: Number(el.getAttribute("data-setup")) });
+        ui.openCons = -1;
+        ui.ammo = null;
+        send({ action: "switchSetup", idx: Number(el.getAttribute("data-setup")), group: el.getAttribute("data-group") || "OPTIONAL_DEVICES_AND_BOOSTERS" });
         render();
     } else if ((el = closest(e.target, "data-setdev"))) {
         ui.openDev = -1;
