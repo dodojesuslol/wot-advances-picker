@@ -694,3 +694,23 @@ body {
 .shell .shell-diff { font-size: 10rem; margin-left: 0; color: #ffb02e; }
 .ammo-tools { margin-top: 4rem; }
 .apply { height: 30rem; margin-top: 6rem; }
+
+/* collapsible sections */
+.collapsible { cursor: pointer; }
+.collapsible:hover { color: #e2e2dc; }
+.chev-s { display: inline-block; width: 14rem; color: #ffb02e; }
+.summary {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5rem 8rem;
+    font-size: 13rem;
+    color: #b8b8b0;
+    background-color: rgba(34, 37, 42, 0.95);
+    border: 1rem solid rgba(255, 255, 255, 0.06);
+    border-radius: 4rem;
+}
+.summary .abbr { margin-right: 4rem; }
+.sum-n { margin-right: 12rem; font-family: PFDINMax; font-size: 15rem; color: #e2e2dc; }
+
+.sum-part { margin-right: 14rem; }

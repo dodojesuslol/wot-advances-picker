@@ -12,6 +12,7 @@ const ui = {
     readyOnly: false,
     playlist: "", // id of the game's vehicle playlist used as filter
     autoCrew: true, // return the last crew when a tank is clicked
+    collapsed: { crew: false, ammo: false }, // collapsible bar sections
     search: "",
     openSlot: -1,
     ammo: null, // pending shell counts {cd: count} for data.detail.cd
@@ -31,6 +32,7 @@ function applySavedFilters(f) {
     ui.readyOnly = !!f.readyOnly;
     ui.playlist = f.playlist || "";
     ui.autoCrew = f.autoCrew !== false;
+    ui.collapsed = { crew: !!(f.collapsed && f.collapsed.crew), ammo: !!(f.collapsed && f.collapsed.ammo) };
 }
 
 let saveTimer = 0;
@@ -38,7 +40,7 @@ function saveFilters() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
         saveTimer = 0;
-        send({ action: "saveFilters", filters: JSON.stringify({ nations: [...ui.nations], types: [...ui.types], readyOnly: ui.readyOnly, playlist: ui.playlist, autoCrew: ui.autoCrew }) });
+        send({ action: "saveFilters", filters: JSON.stringify({ nations: [...ui.nations], types: [...ui.types], readyOnly: ui.readyOnly, playlist: ui.playlist, autoCrew: ui.autoCrew, collapsed: ui.collapsed }) });
     }, 400);
 }
 
@@ -160,6 +162,17 @@ function renderGrid(list) {
     return `<div class="grid-inner">${list.map(renderCard).join("")}</div>`;
 }
 
+function renderCrewSummary(d) {
+    const total = d.crew.length;
+    const present = d.crew.filter((m) => m.tankman).length;
+    const untrained = d.crew.filter((m) => m.tankman && !m.tankman.native).length;
+    const parts = [`<span class="sum-part">${present}/${total} besetzt</span>`];
+    if (present < total) parts.push(`<span class="sum-part warn">${total - present} fehlt</span>`);
+    if (untrained) parts.push(`<span class="sum-part warn">${untrained} nicht ausgebildet</span>`);
+    if (present === total && !untrained) parts.push(`<span class="sum-part ok-text">alles in Ordnung</span>`);
+    return `<div class="summary" data-collapse="crew">${parts.join("")}</div>`;
+}
+
 function renderMember(m, d) {
     const t = m.tankman;
     const open = ui.openSlot === m.slot;
@@ -257,14 +270,14 @@ function renderAmmo(d) {
     }).join("");
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Munition</div><div class="${total < d.ammoMax ? "warn" : "muted"}">${total} / ${d.ammoMax}</div></div>
-        ${rows}
-        <div class="ammo-tools">
+        <div class="section-title"><div class="grow collapsible" data-collapse="ammo"><span class="chev-s">${ui.collapsed.ammo ? "▸" : "▾"}</span>Munition</div><div class="${total < d.ammoMax ? "warn" : "muted"}">${total} / ${d.ammoMax}</div></div>
+        ${ui.collapsed.ammo ? `<div class="summary" data-collapse="ammo">${d.shells.map((x) => `<span class="abbr ${x.premium ? "prem" : ""}">${esc(x.abbr)}</span><span class="sum-n">${counts[x.cd]}</span>`).join("")}${changed ? `<span class="accent">geändert</span>` : ""}</div>` : rows}
+        ${ui.collapsed.ammo && !changed ? "" : `<div class="ammo-tools">
             <div class="btn small ${full ? "off" : ""}" data-ammo-fill="1">Auffüllen</div>
             ${changed ? `<div class="btn small" data-ammo-reset="1">Zurücksetzen</div>` : ""}
             <div class="grow"></div>
             ${costText ? `<div class="ammo-cost">Kosten: <span class="accent">${costText}</span></div>` : changed ? `<div class="ammo-cost muted">Aus dem Lager, kostenlos</div>` : ""}
-        </div>
+        </div>`}
         ${changed ? `<div class="apply" data-ammo-apply="1">Munition übernehmen${costText ? ` · ${costText}` : ""}</div>` : ""}
     </div>`;
 }
@@ -486,12 +499,12 @@ function renderSide() {
             ${d.ready ? `<div class="state ok">Einsatzbereit</div>` : `<div class="state bad">${esc(d.state)}</div>`}
 
             <div class="section">
-                <div class="section-title"><div class="grow">Besatzung${missing ? ` · <span class="warn">${missing} fehlt</span>` : ""}</div>
+                <div class="section-title"><div class="grow collapsible" data-collapse="crew"><span class="chev-s">${ui.collapsed.crew ? "▸" : "▾"}</span>Besatzung${missing ? ` · <span class="warn">${missing} fehlt</span>` : ""}</div>
                     ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">Zurückholen</div>` : ""}
                     <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1" title="Letzte Besatzung beim Anklicken automatisch zurückholen">Auto: ${ui.autoCrew ? "an" : "aus"}</div>
                 </div>
                 ${d.crewLocked ? `<div class="muted" style="margin-bottom: 8rem;">Besatzung ist gerade gesperrt (Fahrzeug im Zug/Gefecht).</div>` : ""}
-                ${d.crew.map((m) => renderMember(m, d)).join("")}
+                ${ui.collapsed.crew ? renderCrewSummary(d) : d.crew.map((m) => renderMember(m, d)).join("")}
             </div>
 
             ${renderAmmo(d)}
@@ -573,6 +586,12 @@ root.addEventListener("click", (e) => {
         ui.types.has(t) ? ui.types.delete(t) : ui.types.add(t);
         render();
         saveFilters();
+    } else if ((el = closest(e.target, "data-collapse"))) {
+        const key = el.getAttribute("data-collapse");
+        ui.collapsed[key] = !ui.collapsed[key];
+        if (key === "crew") ui.openSlot = -1;
+        saveFilters();
+        render();
     } else if (closest(e.target, "data-autocrew")) {
         ui.autoCrew = !ui.autoCrew;
         saveFilters();
