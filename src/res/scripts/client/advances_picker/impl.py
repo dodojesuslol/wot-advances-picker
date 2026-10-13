@@ -32,7 +32,7 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'

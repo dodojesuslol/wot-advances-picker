@@ -21,6 +21,9 @@ _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _DEV_FILE = os.path.join('mods', 'configs', 'advances_picker', 'dev.json')
 _IMPL_PATH = 'res/scripts/client/advances_picker/impl.py'
+# Python 2 sets a module's globals to None when the module object dies, so every dev-loaded
+# impl is kept alive here (open views and callbacks still use its functions).
+_devModules = []
 
 
 def _devConfig():
@@ -46,6 +49,7 @@ def _impl():
             module.__file__ = path
             exec compile(source, path, 'exec') in module.__dict__
             module.DEV = {'src': config['src'], 'reopen': _reopen}
+            _devModules.append(module)
             _logger.info('dev: loaded impl from %s', path)
             return module
         except Exception:
