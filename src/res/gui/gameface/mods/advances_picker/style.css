@@ -401,8 +401,7 @@ body {
 /* ammo editor */
 .shell {
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
     padding: 8rem 10rem;
     margin-bottom: 4rem;
     background-color: rgba(34, 37, 42, 0.95);
@@ -479,3 +478,54 @@ body {
     font-weight: bold;
 }
 .apply:hover { background-color: rgba(255, 176, 46, 0.32); color: #ffffff; }
+
+.shell-top { display: flex; flex-direction: row; align-items: center; }
+.shell-val {
+    min-width: 54rem;
+    text-align: right;
+    font-family: PFDINMax;
+    font-size: 22rem;
+}
+.shell-diff { font-size: 13rem; color: #ffb02e; margin-left: 4rem; }
+.slider-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6rem;
+}
+.slider-row .step { margin-left: 0; }
+.slider {
+    position: relative;
+    flex-grow: 1;
+    height: 24rem;
+    margin: 0 10rem;
+}
+.slider-track, .slider-reach, .slider-fill {
+    position: absolute;
+    left: 0;
+    top: 9rem;
+    height: 6rem;
+    border-radius: 3rem;
+}
+.slider-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 9rem;
+    height: 6rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.07);
+}
+.slider-reach { background-color: rgba(255, 255, 255, 0.16); }
+.slider-fill { background-color: #ffb02e; }
+.slider-thumb {
+    position: absolute;
+    top: 2rem;
+    width: 20rem;
+    height: 20rem;
+    margin-left: -10rem;
+    border-radius: 10rem;
+    background-color: #ffffff;
+    border: 2rem solid #ffb02e;
+}
+.slider:hover .slider-thumb { background-color: #ffe2a8; }

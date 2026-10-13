@@ -203,20 +203,27 @@ function renderAmmo(d) {
         const n = counts[s.cd];
         const diff = n - s.count;
         const buy = Math.max(0, n - s.count - s.depot);
+        const reach = n + Math.max(0, d.ammoMax - total); // highest value this shell can take
+        const pct = (v) => (d.ammoMax ? (100 * v / d.ammoMax) : 0).toFixed(2);
         return `
         <div class="shell ${diff ? "changed" : ""}">
-            <div class="shell-ico" ${bg(s.icon)}></div>
-            <div class="shell-info">
-                <div class="shell-name"><span class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</span>${esc(s.name)}</div>
-                <div class="shell-stats">Durchschlag ${s.pen} · Schaden ${s.damage}</div>
-                <div class="shell-stock">Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}${diff ? ` · ${diff > 0 ? "+" : ""}${diff}` : ""}</div>
+            <div class="shell-top">
+                <div class="shell-ico" ${bg(s.icon)}></div>
+                <div class="shell-info">
+                    <div class="shell-name"><span class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</span>${esc(s.name)}</div>
+                    <div class="shell-stats">Durchschlag ${s.pen} · Schaden ${s.damage} · Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}</div>
+                </div>
+                <div class="shell-val">${n}${diff ? `<span class="shell-diff">${diff > 0 ? "+" : ""}${diff}</span>` : ""}</div>
             </div>
-            <div class="stepper">
-                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-5">−5</div>
+            <div class="slider-row">
                 <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">−</div>
-                <div class="step-val">${n}</div>
+                <div class="slider" data-slider="${s.cd}">
+                    <div class="slider-track"></div>
+                    <div class="slider-reach" style="width: ${pct(reach)}%;"></div>
+                    <div class="slider-fill" style="width: ${pct(n)}%;"></div>
+                    <div class="slider-thumb" style="left: ${pct(n)}%;"></div>
+                </div>
                 <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="1">+</div>
-                <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="5">+5</div>
             </div>
         </div>`;
     }).join("");
@@ -234,6 +241,54 @@ function renderAmmo(d) {
     </div>`;
 }
 
+function renderSideOnly() {
+    const side = document.querySelector(".side");
+    if (!side) return render();
+    const scroll = document.getElementById("sideScroll");
+    const top = scroll ? scroll.scrollTop : 0;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = renderSide();
+    side.parentNode.replaceChild(tmp.children[0], side);
+    const next = document.getElementById("sideScroll");
+    if (next) next.scrollTop = top;
+}
+
+function setAmmo(cd, value) {
+    const d = data.detail;
+    if (!d) return;
+    const counts = ammoCounts(d);
+    const others = d.shells.reduce((sum, s) => sum + (s.cd === cd ? 0 : counts[s.cd]), 0);
+    const next = Math.max(0, Math.min(Math.round(value), d.ammoMax - others));
+    if (next === counts[cd]) return;
+    ui.ammo = Object.assign({}, counts, { [cd]: next });
+    renderSideOnly();
+}
+
+let drag = null; // {cd, left, width}
+
+function sliderValue(x) {
+    const d = data.detail;
+    const ratio = Math.max(0, Math.min(1, (x - drag.left) / drag.width));
+    return ratio * d.ammoMax;
+}
+
+root.addEventListener("mousedown", (e) => {
+    const el = closest(e.target, "data-slider");
+    if (!el || !data.detail) return;
+    const r = el.getBoundingClientRect();
+    drag = { cd: Number(el.getAttribute("data-slider")), left: r.left, width: r.width || 1 };
+    setAmmo(drag.cd, sliderValue(e.clientX));
+    e.preventDefault();
+});
+
+document.addEventListener("mousemove", (e) => {
+    if (drag) setAmmo(drag.cd, sliderValue(e.clientX));
+});
+
+document.addEventListener("mouseup", () => {
+    drag = null;
+});
+
 function changeAmmo(cd, delta) {
     const d = data.detail;
     if (!d) return;
@@ -243,7 +298,7 @@ function changeAmmo(cd, delta) {
     if (delta > 0) next = counts[cd] + Math.min(delta, d.ammoMax - total);
     next = Math.max(0, next);
     ui.ammo = Object.assign({}, counts, { [cd]: next });
-    render();
+    renderSideOnly();
 }
 
 function fillAmmo() {
