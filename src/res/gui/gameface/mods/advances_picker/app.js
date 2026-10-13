@@ -165,10 +165,10 @@ function renderMember(m, d) {
     const open = ui.openSlot === m.slot;
     let who;
     if (t) {
-        const info = t.native ? (t.skills ? `${t.skills} Fertigkeit${t.skills === 1 ? "" : "en"}` : "ausgebildet") : `nicht ausgebildet · Stammfahrzeug ${esc(t.nativeName)}`;
-        who = `<div class="n">${esc(t.name)}</div><div class="d ${t.native ? "" : "warn"}">${info}</div>`;
+        const info = t.native ? (t.skills ? `${t.skills} Fert.` : "") : `nicht ausgebildet (${esc(t.nativeName)})`;
+        who = `<div class="n">${esc(t.name)}</div>${info ? `<div class="d ${t.native ? "" : "warn"}">${info}</div>` : ""}`;
     } else {
-        who = `<div class="n warn">Kein Besatzungsmitglied</div><div class="d">Klicken zum Zuweisen</div>`;
+        who = `<div class="n warn">fehlt – klicken zum Zuweisen</div>`;
     }
     const eff = t && t.eff != null ? `${t.eff}%` : "";
     let html = `
@@ -485,7 +485,7 @@ function renderSide() {
             <div class="section">
                 <div class="section-title"><div class="grow">Besatzung${missing ? ` · <span class="warn">${missing} fehlt</span>` : ""}</div>
                     ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">Zurückholen</div>` : ""}
-                    <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1">Letzte Besatzung automatisch: ${ui.autoCrew ? "an" : "aus"}</div>
+                    <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1" title="Letzte Besatzung beim Anklicken automatisch zurückholen">Auto: ${ui.autoCrew ? "an" : "aus"}</div>
                 </div>
                 ${d.crewLocked ? `<div class="muted" style="margin-bottom: 8rem;">Besatzung ist gerade gesperrt (Fahrzeug im Zug/Gefecht).</div>` : ""}
                 ${d.crew.map((m) => renderMember(m, d)).join("")}

@@ -655,3 +655,16 @@ body {
 /* stepper buttons: plain ASCII glyphs (Warhelios has no U+2212), a bit larger */
 .slider-row .step { font-size: 18rem; font-weight: bold; color: #e2e2dc; }
 .veh-name { margin-top: 2rem; }
+
+/* compact crew rows: one line per member */
+.member { padding: 3rem 8rem; margin-bottom: 2rem; min-height: 26rem; }
+.member .role { width: 96rem; font-size: 13rem; }
+.member .who { display: flex; flex-direction: row; align-items: center; }
+.member .who .n { flex-shrink: 1; font-size: 14rem; }
+.member .who .d { flex-shrink: 0; margin-left: 8rem; font-size: 12rem; white-space: nowrap; }
+.member .eff { width: 44rem; font-size: 14rem; }
+.member .chev { width: 14rem; }
+
+.state { margin-top: 6rem; padding: 4rem 10rem; font-size: 14rem; }
+.section { margin-top: 16rem; }
+.section-title .grow { white-space: nowrap; }
