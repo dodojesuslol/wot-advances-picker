@@ -626,3 +626,7 @@ body {
     background-color: rgba(79, 159, 224, 0.25);
     color: #9ccbf2;
 }
+
+/* auto equip (Z4imon) status */
+.ae-state { font-size: 14rem; padding: 2rem 2rem; }
+.ok-text { color: #9fd8a2; }

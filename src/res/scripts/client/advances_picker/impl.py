@@ -32,7 +32,7 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.7.1'
+__version__ = '0.8.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -97,6 +97,15 @@ def _img(path):
     return path
 
 
+def _autoEquip():
+    # Z4imon's auto_equipment_return mod (used as-is, never modified): returns (config, apply) or None
+    try:
+        from gui.mods.auto_equip import config as aeConfig, apply as aeApply
+        return (aeConfig, aeApply)
+    except Exception:
+        return None
+
+
 def _isFrozen(frozenCDs, intCD):
     return frozenCDs == 'all' or intCD in frozenCDs
 
@@ -156,6 +165,7 @@ class AdvancesPickerView(ViewImpl):
         self._refreshPending = False
         self._filters = _loadFilters()
         self._openArgs = (levelsRange, frozenCDs)
+        self._aePolling = False
 
     @property
     def viewModel(self):
@@ -212,6 +222,47 @@ class AdvancesPickerView(ViewImpl):
          'filters': self._filters,
          'detail': self._packDetail(vehicles.get(self._selectedCD)) if self._selectedCD else None}
 
+    def _packAutoEquip(self, vehicle):
+        ae = _autoEquip()
+        if ae is None:
+            return None
+        aeConfig, aeApply = ae
+        try:
+            busy = bool(aeApply.is_busy())
+            if busy:
+                self._pollAutoEquip()
+            return {'enabled': bool(aeConfig.is_auto_enabled()),
+             'hasSets': bool(aeConfig.has_saved_sets(vehicle.invID)),
+             'busy': busy}
+        except Exception:
+            _logger.exception('auto equip state failed')
+            return None
+
+    def _pollAutoEquip(self):
+        # the run finishes with item syncs, but its busy flag drops a moment later: re-check
+        if not self._aePolling:
+            self._aePolling = True
+            BigWorld.callback(0.7, self.__aePoll)
+
+    def __aePoll(self):
+        self._aePolling = False
+        try:
+            if self.viewModel is not None:
+                self._push()
+        except Exception:
+            pass
+
+    def _selectInHangar(self, vehicle):
+        # auto equip reacts to the garage selection (g_currentVehicle) and checks it while running
+        if _autoEquip() is None or vehicle is None or vehicle.isLocked:
+            return
+        try:
+            from CurrentVehicle import g_currentVehicle
+            if not g_currentVehicle.isPresent() or g_currentVehicle.item.invID != vehicle.invID:
+                g_currentVehicle.selectVehicle(vehicle.invID)
+        except Exception:
+            _logger.exception('selecting %s in the garage failed', vehicle.intCD)
+
     def _packPlaylists(self):
         # the game's own 2.0 vehicle playlists: JSON {title, createdAt, modifiedAt, list: [intCD, ...]}
         result = []
@@ -250,6 +301,7 @@ class AdvancesPickerView(ViewImpl):
          'crewLocked': bool(vehicle.isCrewLocked or vehicle.isLocked),
          'canReturnCrew': self._canReturnCrew(vehicle),
          'crew': self._packCrew(vehicle),
+         'autoEquip': self._packAutoEquip(vehicle),
          'shells': self._packShells(vehicle),
          'ammoMax': vehicle.ammoMaxSize,
          'devices': self._packDevices(vehicle),
@@ -423,7 +475,10 @@ class AdvancesPickerView(ViewImpl):
         try:
             if action == 'select':
                 self._selectedCD = int(args.get('cd', 0))
+                self._selectInHangar(self._selectedVehicle())
                 self._push()
+            elif action == 'autoEquipApply':
+                self._autoEquipApply()
             elif action == 'equip':
                 self._equipTankman(int(args.get('tankman')), int(args.get('slot')))
             elif action == 'unload':
@@ -464,6 +519,16 @@ class AdvancesPickerView(ViewImpl):
         vehicle = self._selectedVehicle()
         if vehicle is not None:
             ActionsFactory.doAction(ActionsFactory.UNLOAD_TANKMAN, vehicle.invID, slot)
+
+    def _autoEquipApply(self):
+        ae = _autoEquip()
+        vehicle = self._selectedVehicle()
+        if ae is None or vehicle is None:
+            return
+        self._selectInHangar(vehicle)
+        # the mod's own single-vehicle run (same one its selection trigger uses)
+        BigWorld.callback(0.3, lambda: ae[1].apply_saved_sets(vehicle.invID))
+        BigWorld.callback(0.4, self._pollAutoEquip)
 
     def _applyAmmo(self, countsStr):
         vehicle = self._selectedVehicle()

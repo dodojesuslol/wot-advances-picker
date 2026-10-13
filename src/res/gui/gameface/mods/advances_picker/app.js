@@ -388,6 +388,21 @@ function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
     return `<div class="pick" data-scroll="70">${note}${rows.join("")}</div>`;
 }
 
+function renderAutoEquip(d) {
+    const ae = d.autoEquip;
+    if (!ae) return "";
+    let state;
+    if (ae.busy) state = `<span class="accent">baut gerade ein…</span>`;
+    else if (!ae.hasSets) state = `<span class="muted">keine Sets gespeichert</span>`;
+    else if (!ae.enabled) state = `<span class="muted">Sets gespeichert · Automatik aus</span>`;
+    else state = `<span class="ok-text">Sets gespeichert · Automatik an</span>`;
+    return `
+    <div class="section">
+        <div class="section-title"><div class="grow">Auto-Equip</div>${ae.hasSets && !ae.busy ? `<div class="btn small" data-act="autoEquipApply">Sets jetzt einbauen</div>` : ""}</div>
+        <div class="ae-state">${state}</div>
+    </div>`;
+}
+
 function renderDevices(d) {
     const cards = d.devices.map((s) => {
         const it = s.item;
@@ -439,6 +454,7 @@ function renderSide() {
         </div>`;
     }
     const pendingAmmo = ammoChanged(d);
+    const aeBusy = !!(d.autoEquip && d.autoEquip.busy);
     const missing = d.crew.filter((m) => !m.tankman).length;
     return `
     <div class="side">
@@ -458,12 +474,13 @@ function renderSide() {
 
             ${renderAmmo(d)}
 
+            ${renderAutoEquip(d)}
             ${renderDevices(d)}
             ${renderConsumables(d)}
         </div>
         <div class="side-foot">
-            <div class="lock ${d.ready && !pendingAmmo ? "" : "off"}" data-act="lock">Einloggen</div>
-            <div class="foot-note">${pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? "Setzt das Fahrzeug in deinen Slot" : esc(d.state)}</div>
+            <div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">Einloggen</div>
+            <div class="foot-note">${aeBusy ? "Auto-Equip baut gerade die Ausrüstung ein…" : pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? "Setzt das Fahrzeug in deinen Slot" : esc(d.state)}</div>
         </div>
     </div>`;
 }
@@ -606,7 +623,7 @@ root.addEventListener("click", (e) => {
         render();
     } else if ((el = closest(e.target, "data-act"))) {
         const act = el.getAttribute("data-act");
-        if (act === "lock" && !(data.detail && data.detail.ready && !ammoChanged(data.detail))) return;
+        if (act === "lock" && !(data.detail && data.detail.ready && !ammoChanged(data.detail) && !(data.detail.autoEquip && data.detail.autoEquip.busy))) return;
         send({ action: act });
     }
 });
