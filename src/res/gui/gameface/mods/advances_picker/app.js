@@ -472,6 +472,8 @@ function positionPopup() {
     const rootRect = root.getBoundingClientRect();
     const gap = 12;
     const h = pop.offsetHeight;
+    // Gameface lays new elements out a frame later; until then every size reads 0
+    if (!sideRect.left || !pop.offsetWidth || !h || !a.height) return false;
     const minTop = 84;
     const maxTop = rootRect.height - h - 12;
     const top = Math.max(minTop, Math.min(maxTop, a.top + a.height / 2 - h / 2));
@@ -480,6 +482,8 @@ function positionPopup() {
     // little arrow pointing at the slot
     const arrow = document.getElementById("popupArrow");
     if (arrow) arrow.style.top = `${Math.round(Math.max(10, Math.min(h - 22, a.top + a.height / 2 - top - 8)))}px`;
+    pop.style.visibility = "visible";
+    return true;
 }
 
 function placePopup() {
@@ -493,8 +497,19 @@ function placePopup() {
     pop.setAttribute("data-popup", "1");
     pop.setAttribute("data-anchor", content.anchor);
     pop.innerHTML = `<div class="popup-arrow" id="popupArrow"></div>${content.html}`;
+    pop.style.visibility = "hidden";
     root.appendChild(pop);
-    positionPopup();
+    // retry for a few frames until Gameface has laid the new element out
+    let tries = 0;
+    const attempt = () => {
+        if (document.getElementById("popup") !== pop) return;
+        if (positionPopup() || ++tries > 20) {
+            pop.style.visibility = "visible";
+            return;
+        }
+        requestAnimationFrame(attempt);
+    };
+    attempt();
 }
 
 function closePopups() {
