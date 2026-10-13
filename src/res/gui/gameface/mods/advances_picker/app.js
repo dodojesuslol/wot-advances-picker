@@ -189,6 +189,24 @@ function renderCrewSummary(d) {
     return `<div class="summary" data-collapse="crew">${parts.join("")}</div>`;
 }
 
+function crewPickHtml(m) {
+    const t = m.tankman;
+    const rows = m.candidates.map((c) => {
+        const tag = c.native ? `<div class="tag native">ausgebildet</div>` : `<div class="tag other">${esc(c.nativeName)}</div>`;
+        const where = c.where ? `in ${esc(c.where)}` : "Kaserne";
+        return `<div class="pick-row" data-equip="${c.id}" data-slot="${m.slot}">
+            <div class="n">${esc(c.name)}</div>${tag}<div class="d">${where}${c.skills ? ` · ${c.skills} Fert.` : ""}</div>
+        </div>`;
+    });
+    if (t) {
+        rows.push(`<div class="pick-row remove" data-unload="${m.slot}"><div class="n">In die Kaserne schicken</div></div>`);
+    }
+    if (!m.candidates.length) {
+        rows.unshift(`<div class="pick-row"><div class="n muted">Keine passenden ${esc(m.roleName)} dieser Nation verfügbar</div></div>`);
+    }
+    return `<div class="pick-head">${esc(m.roleName)}</div><div class="pick" data-scroll="70">${rows.join("")}</div>`;
+}
+
 function renderMember(m, d) {
     const t = m.tankman;
     const open = ui.openSlot === m.slot;
@@ -207,22 +225,6 @@ function renderMember(m, d) {
         <div class="eff">${eff}</div>
         <div class="chev">${open ? "▴" : "▾"}</div>
     </div>`;
-    if (open) {
-        const rows = m.candidates.map((c) => {
-            const tag = c.native ? `<div class="tag native">ausgebildet</div>` : `<div class="tag other">${esc(c.nativeName)}</div>`;
-            const where = c.where ? `in ${esc(c.where)}` : "Kaserne";
-            return `<div class="pick-row" data-equip="${c.id}" data-slot="${m.slot}">
-                <div class="n">${esc(c.name)}</div>${tag}<div class="d">${where}${c.skills ? ` · ${c.skills} Fert.` : ""}</div>
-            </div>`;
-        });
-        if (t) {
-            rows.push(`<div class="pick-row remove" data-unload="${m.slot}"><div class="n">In die Kaserne schicken</div></div>`);
-        }
-        if (!m.candidates.length) {
-            rows.unshift(`<div class="pick-row"><div class="n muted">Keine passenden ${esc(m.roleName)} dieser Nation verfügbar</div></div>`);
-        }
-        html += `<div class="pick" data-scroll="70">${rows.join("")}</div>`;
-    }
     return html;
 }
 
@@ -310,6 +312,7 @@ function renderSideOnly() {
     if (next) next.scrollTop = top;
     const lock = document.getElementById("headerLock");
     if (lock) lock.innerHTML = renderLock();
+    placePopup();
 }
 
 function setAmmo(cd, value) {
@@ -381,10 +384,19 @@ function applyAmmo() {
 }
 
 function itemTag(it) {
-    if (it.deluxe) return `<span class="itag deluxe">Deluxe</span>`;
+    if (it.deluxe) return `<span class="itag deluxe">Bond</span>`;
     if (it.modernized) return `<span class="itag trophy">Experimentell</span>`;
-    if (it.trophy) return `<span class="itag trophy">Trophäe</span>`;
+    if (it.trophy) return `<span class="itag trophy">Bounty</span>`;
     return "";
+}
+
+// equipment tiers top -> bottom: bounty, experimental, bond, standard
+const TIERS = ["Bounty", "Experimentell", "Bond", "Standard"];
+function itemTier(it) {
+    if (it.trophy) return 0;
+    if (it.modernized) return 1;
+    if (it.deluxe) return 2;
+    return 3;
 }
 
 function catDots(cats) {
@@ -396,12 +408,24 @@ function catBonus(item, slotCats) {
 }
 
 function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
-    const rows = candidates.map((c) => `
+    const tiered = kind === "dev";
+    const list = tiered
+        ? candidates.slice().sort((a, b) => (itemTier(a) - itemTier(b)) || a.name.localeCompare(b.name))
+        : candidates;
+    const rows = [];
+    let lastTier = -1;
+    list.forEach((c) => {
+        if (tiered && itemTier(c) !== lastTier) {
+            lastTier = itemTier(c);
+            rows.push(`<div class="pick-group">${TIERS[lastTier]}</div>`);
+        }
+        rows.push(`
         <div class="pick-row" data-set${kind}="${c.cd}" data-pslot="${slot}">
             <div class="pick-ico" ${bg(c.icon)}></div>
-            <div class="n">${esc(c.name)}</div>${catDots(c.cats)}${catBonus(c, slotCats) ? `<div class="tag native">Bonus</div>` : ""}${itemTag(c)}
+            <div class="n">${esc(c.name)}</div>${catDots(c.cats)}${catBonus(c, slotCats) ? `<div class="tag native">Bonus</div>` : ""}${tiered ? "" : itemTag(c)}
             <div class="d">×${c.depot} im Lager</div>
         </div>`);
+    });
     if (!candidates.length) {
         rows.push(`<div class="pick-row"><div class="n muted">${emptyText}</div></div>`);
     }
@@ -415,6 +439,66 @@ function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
         }
     }
     return `<div class="pick" data-scroll="70">${note}${rows.join("")}</div>`;
+}
+
+// --- floating pick window, opens left of the side bar next to the clicked slot ----
+
+function popupContent() {
+    const d = data.detail;
+    if (!d) return null;
+    if (ui.openSlot !== -1) {
+        const m = d.crew.find((x) => x.slot === ui.openSlot);
+        return m ? { html: crewPickHtml(m), anchor: `.member[data-slot="${m.slot}"]` } : null;
+    }
+    if (ui.openDev !== -1) {
+        const s = d.devices.find((x) => x.slot === ui.openDev);
+        return s ? { html: `<div class="pick-head">Ausrüstung · Slot ${s.slot + 1}</div>` + renderPickList("dev", s.slot, s.item, s.candidates, s.slotCats, "Keine passende Ausrüstung im Lager"), anchor: `[data-dev="${s.slot}"]` } : null;
+    }
+    if (ui.openCons !== -1) {
+        const s = d.consumables.find((x) => x.slot === ui.openCons);
+        return s ? { html: `<div class="pick-head">Verbrauchsmaterial · Slot ${s.slot + 1}</div>` + renderPickList("cons", s.slot, s.item, s.candidates, [], "Kein passendes Verbrauchsmaterial im Lager"), anchor: `[data-cons="${s.slot}"]` } : null;
+    }
+    return null;
+}
+
+function positionPopup() {
+    const pop = document.getElementById("popup");
+    if (!pop) return;
+    const anchor = document.querySelector(pop.getAttribute("data-anchor"));
+    const side = document.querySelector(".side");
+    if (!anchor || !side) return;
+    const a = anchor.getBoundingClientRect();
+    const sideRect = side.getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    const gap = 12;
+    const h = pop.offsetHeight;
+    const minTop = 84;
+    const maxTop = rootRect.height - h - 12;
+    const top = Math.max(minTop, Math.min(maxTop, a.top + a.height / 2 - h / 2));
+    pop.style.left = `${Math.round(sideRect.left - pop.offsetWidth - gap)}px`;
+    pop.style.top = `${Math.round(top)}px`;
+    // little arrow pointing at the slot
+    const arrow = document.getElementById("popupArrow");
+    if (arrow) arrow.style.top = `${Math.round(Math.max(10, Math.min(h - 22, a.top + a.height / 2 - top - 8)))}px`;
+}
+
+function placePopup() {
+    const old = document.getElementById("popup");
+    if (old) old.parentNode.removeChild(old);
+    const content = popupContent();
+    if (!content) return;
+    const pop = document.createElement("div");
+    pop.id = "popup";
+    pop.className = "popup";
+    pop.setAttribute("data-popup", "1");
+    pop.setAttribute("data-anchor", content.anchor);
+    pop.innerHTML = `<div class="popup-arrow" id="popupArrow"></div>${content.html}`;
+    root.appendChild(pop);
+    positionPopup();
+}
+
+function closePopups() {
+    ui.openSlot = ui.openDev = ui.openCons = -1;
 }
 
 function renderAutoEquip(d) {
@@ -461,7 +545,6 @@ function renderDevices(d) {
             <div class="slot-tags">${it ? itemTag(it) : ""}${catBonus(it, s.slotCats) ? `<span class="itag bonus">Bonus</span>` : ""}</div>
         </div>`;
     }).join("");
-    const openSlot = d.devices.find((s) => s.slot === ui.openDev);
     const ds = d.deviceSetups;
     const { setupHead, otherSetup } = renderSetups(ds, "");
     return `
@@ -469,7 +552,6 @@ function renderDevices(d) {
         <div class="section-title"><div class="grow">Ausrüstung${ds ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
         ${setupHead}
         <div class="slots">${cards}</div>
-        ${openSlot ? renderPickList("dev", openSlot.slot, openSlot.item, openSlot.candidates, openSlot.slotCats, "Keine passende Ausrüstung im Lager") : ""}
         ${otherSetup}
     </div>`;
 }
@@ -484,7 +566,6 @@ function renderConsumables(d) {
             <div class="t">${it ? esc(it.name) : "leer"}</div>
         </div>`;
     }).join("");
-    const openSlot = d.consumables.find((s) => s.slot === ui.openCons);
     const cs = d.consumableSetups;
     const { setupHead, otherSetup } = renderSetups(cs, "wechselt auch das Munitions-Set");
     return `
@@ -492,7 +573,6 @@ function renderConsumables(d) {
         <div class="section-title"><div class="grow">Verbrauchsmaterial${cs ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
         ${setupHead}
         <div class="slots">${cards}</div>
-        ${openSlot ? renderPickList("cons", openSlot.slot, openSlot.item, openSlot.candidates, [], "Kein passendes Verbrauchsmaterial im Lager") : ""}
         ${otherSetup}
     </div>`;
 }
@@ -562,6 +642,7 @@ function render() {
             try { search.setSelectionRange(n, n); } catch (e) { /* not supported */ }
         }
     }
+    placePopup();
 }
 
 // --- events ---------------------------------------------------------------------
@@ -587,6 +668,11 @@ function closest(el, attr) {
 
 root.addEventListener("click", (e) => {
     let el;
+    const popupOpen = ui.openSlot !== -1 || ui.openDev !== -1 || ui.openCons !== -1;
+    if (popupOpen && !closest(e.target, "data-popup") && !closest(e.target, "data-dev") && !closest(e.target, "data-cons") && !(closest(e.target, "data-slot") && (closest(e.target, "data-slot").getAttribute("class") || "").indexOf("member") !== -1)) {
+        closePopups();
+        placePopup();
+    }
     if ((el = closest(e.target, "data-nation"))) {
         const n = el.getAttribute("data-nation");
         ui.nations.has(n) ? ui.nations.delete(n) : ui.nations.add(n);
@@ -712,9 +798,11 @@ function animateScroll(el, target) {
         if (Math.abs(diff) < 1) {
             el.scrollTop = target;
             scrollAnim.delete(el);
+            if (el.id === "sideScroll") positionPopup();
             return;
         }
         el.scrollTop = cur + diff * 0.35;
+        if (el.id === "sideScroll") positionPopup();
         requestAnimationFrame(step);
     };
     requestAnimationFrame(step);

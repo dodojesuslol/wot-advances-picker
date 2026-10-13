@@ -737,3 +737,48 @@ body {
 .header-title, .header-sub, .dev-badge { white-space: nowrap; }
 .header-sub { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
 .h-left .header-title { flex-shrink: 0; }
+
+/* floating pick window left of the side bar */
+#root { position: relative; }
+.popup {
+    position: absolute;
+    width: 460rem;
+    padding: 8rem;
+    background-color: rgba(16, 17, 20, 0.99);
+    border: 1rem solid #ffb02e;
+    border-radius: 6rem;
+    box-shadow: 0 8rem 30rem rgba(0, 0, 0, 0.7);
+}
+.popup .pick {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    max-height: 560rem;
+}
+.popup-arrow {
+    position: absolute;
+    right: -9rem;
+    width: 16rem;
+    height: 16rem;
+    background-color: rgba(16, 17, 20, 0.99);
+    border-top: 1rem solid #ffb02e;
+    border-right: 1rem solid #ffb02e;
+    transform: rotate(45deg);
+}
+.pick-head {
+    padding: 2rem 6rem 8rem 6rem;
+    font-size: 13rem;
+    color: #ffcf7a;
+    text-transform: uppercase;
+    letter-spacing: 1rem;
+}
+.pick-group {
+    padding: 8rem 8rem 3rem 8rem;
+    font-size: 11rem;
+    color: #8a8c8c;
+    text-transform: uppercase;
+    letter-spacing: 1rem;
+    border-bottom: 1rem solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 2rem;
+}
