@@ -242,13 +242,13 @@ function renderAmmo(d) {
             <div class="shell-top">
                 <div class="shell-ico" ${bg(s.icon)}></div>
                 <div class="shell-info">
-                    <div class="shell-name"><span class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</span>${esc(s.name)}</div>
+                    <div class="shell-name"><div class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</div><div class="shell-title">${esc(s.name)}</div></div>
                     <div class="shell-stats">Durchschlag ${s.pen} · Schaden ${s.damage} · Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}</div>
                 </div>
                 <div class="shell-val">${n}${diff ? `<span class="shell-diff">${diff > 0 ? "+" : ""}${diff}</span>` : ""}</div>
             </div>
             <div class="slider-row">
-                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">−</div>
+                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">-</div>
                 <div class="slider" data-slider="${s.cd}">
                     <div class="slider-track"></div>
                     <div class="slider-reach" style="width: ${pct(reach)}%;"></div>
@@ -478,7 +478,6 @@ function renderSide() {
     return `
     <div class="side">
         <div class="side-scroll" id="sideScroll" data-scroll="120">
-            <div class="hero" ${bg(d.image)}></div>
             <div class="veh-name">${esc(d.name)}</div>
             <div class="veh-sub">Stufe ${ROMAN[d.level] || d.level} · ${esc(TYPE_NAMES[d.type] || d.type)}</div>
             ${d.ready ? `<div class="state ok">Einsatzbereit</div>` : `<div class="state bad">${esc(d.state)}</div>`}

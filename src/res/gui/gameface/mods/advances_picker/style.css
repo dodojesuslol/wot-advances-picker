@@ -439,8 +439,10 @@ body {
     background-position: center;
 }
 .shell-info { flex-grow: 1; width: 0; }
-.shell-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell-name { display: flex; flex-direction: row; align-items: center; }
+.shell-title { flex-grow: 1; width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .abbr {
+    flex-shrink: 0;
     font-family: PFDINMax;
     font-size: 12rem;
     padding: 1rem 5rem;
@@ -649,3 +651,7 @@ body {
 .setup-tag.on { background-color: rgba(255, 176, 46, 0.2); color: #ffcf7a; }
 .slot.mini { opacity: 0.7; padding: 4rem; }
 .slot.mini .ico { width: 32rem; height: 32rem; }
+
+/* stepper buttons: plain ASCII glyphs (Warhelios has no U+2212), a bit larger */
+.slider-row .step { font-size: 18rem; font-weight: bold; color: #e2e2dc; }
+.veh-name { margin-top: 2rem; }

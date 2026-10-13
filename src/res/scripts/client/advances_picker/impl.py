@@ -32,7 +32,7 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.8.3'
+__version__ = '0.8.4'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -324,11 +324,18 @@ class AdvancesPickerView(ViewImpl):
             stock = self._itemsCache.items.getItemByCD(shell.intCD)
             price = shell.getBuyPrice().price
             currency = price.getCurrency()
-            try:
-                damage = int(shot.shell.damage[0]) if shot is not None else 0
-                pen = int(shot.piercingPower[0]) if shot is not None else 0
-            except Exception:
-                damage = pen = 0
+            damage = pen = 0
+            if shot is not None:
+                try:
+                    value = shot.shell.armorDamage
+                    damage = int(round(value[0] if isinstance(value, (tuple, list)) else value))
+                except Exception:
+                    _logger.exception('shell damage lookup failed')
+                try:
+                    value = shot.piercingPower
+                    pen = int(round(value[0] if isinstance(value, (tuple, list)) or hasattr(value, '__getitem__') else value))
+                except Exception:
+                    _logger.exception('shell penetration lookup failed')
             result.append({'cd': shell.intCD,
              'name': _u(shell.userName),
              'kind': _u(makeString('#item_types:shell/kinds/%s' % shell.type)),
