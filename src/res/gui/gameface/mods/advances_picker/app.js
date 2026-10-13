@@ -98,6 +98,7 @@ function renderHeader() {
         <div class="header-bar"></div>
         <div class="header-title">${esc(data.title || "Fahrzeug wählen")}</div>
         <div class="header-sub">Stufe ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} Fahrzeuge in der Garage</div>
+        ${data.dev ? `<div class="dev-badge">DEV ${esc(data.version || "")} · F5 = neu laden</div>` : ""}
         <div class="header-spacer"></div>
         <div class="close-btn" data-act="close"><div class="close-x a"></div><div class="close-x b"></div></div>
     </div>`;
@@ -651,6 +652,10 @@ document.addEventListener("wheel", (e) => {
 }, { capture: true, passive: false });
 
 document.addEventListener("keydown", (e) => {
+    if (e.keyCode === 116 && data.dev) {
+        send({ action: "devReload" });
+        return;
+    }
     if (e.keyCode === 27) {
         if (ui.openSlot !== -1 || ui.openDev !== -1 || ui.openCons !== -1) {
             ui.openSlot = ui.openDev = ui.openCons = -1;

@@ -617,3 +617,12 @@ body {
     color: #b8b8b0;
 }
 .filters .fgroup { margin-top: 3rem; margin-bottom: 3rem; }
+
+.dev-badge {
+    margin-left: 18rem;
+    padding: 3rem 8rem;
+    font-size: 13rem;
+    border-radius: 3rem;
+    background-color: rgba(79, 159, 224, 0.25);
+    color: #9ccbf2;
+}
