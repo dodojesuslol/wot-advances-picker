@@ -390,13 +390,13 @@ function itemTag(it) {
     return "";
 }
 
-// equipment tiers top -> bottom: bounty, experimental, bond, standard
-const TIERS = ["Bounty", "Experimentell", "Bond", "Standard"];
+// equipment tiers top -> bottom: bounty, standard, bond, experimental
+const TIERS = ["Bounty", "Standard", "Bond", "Experimentell"];
 function itemTier(it) {
     if (it.trophy) return 0;
-    if (it.modernized) return 1;
+    if (it.modernized) return 3;
     if (it.deluxe) return 2;
-    return 3;
+    return 1;
 }
 
 function catDots(cats) {
