@@ -13,7 +13,11 @@ const ui = {
     search: "",
     openSlot: -1,
     ammo: null, // pending shell counts {cd: count} for data.detail.cd
+    openDev: -1,
+    openCons: -1,
 };
+
+const CAT_NAMES = { firepower: "Feuerkraft", survivability: "Überlebensfähigkeit", mobility: "Mobilität", stealth: "Tarnung" };
 let data = { vehicles: [], detail: null, selected: 0 };
 
 const root = document.getElementById("root");
@@ -150,19 +154,6 @@ function renderMember(m, d) {
         html += `<div class="pick" data-scroll="70">${rows.join("")}</div>`;
     }
     return html;
-}
-
-function renderSlots(items, total, label) {
-    const out = [];
-    for (let i = 0; i < total; i++) {
-        const it = items[i];
-        if (it) {
-            out.push(`<div class="slot"><div class="ico" ${bg(it.icon)}></div><div class="t">${esc(it.name)}</div></div>`);
-        } else {
-            out.push(`<div class="slot free"><div class="ico"></div><div class="t">${label}</div></div>`);
-        }
-    }
-    return `<div class="slots">${out.join("")}</div>`;
 }
 
 function fmt(n) {
@@ -321,6 +312,83 @@ function applyAmmo() {
     render();
 }
 
+function itemTag(it) {
+    if (it.deluxe) return `<span class="itag deluxe">Deluxe</span>`;
+    if (it.modernized) return `<span class="itag trophy">Experimentell</span>`;
+    if (it.trophy) return `<span class="itag trophy">Trophäe</span>`;
+    return "";
+}
+
+function catDots(cats) {
+    return (cats || []).filter((c) => CAT_NAMES[c]).map((c) => `<span class="cat cat-${c}" title="${CAT_NAMES[c]}"></span>`).join("");
+}
+
+function catBonus(item, slotCats) {
+    return !!item && (slotCats || []).some((c) => (item.cats || []).includes(c));
+}
+
+function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
+    const rows = candidates.map((c) => `
+        <div class="pick-row" data-set${kind}="${c.cd}" data-pslot="${slot}">
+            <div class="pick-ico" ${bg(c.icon)}></div>
+            <div class="n">${esc(c.name)}</div>${catDots(c.cats)}${catBonus(c, slotCats) ? `<div class="tag native">Bonus</div>` : ""}${itemTag(c)}
+            <div class="d">×${c.depot} im Lager</div>
+        </div>`);
+    if (!candidates.length) {
+        rows.push(`<div class="pick-row"><div class="n muted">${emptyText}</div></div>`);
+    }
+    let note = "";
+    if (current) {
+        const free = kind === "cons" || current.removable;
+        rows.push(`<div class="pick-row remove" data-set${kind}="0" data-pslot="${slot}"><div class="n">${esc(current.name)} ausbauen</div><div class="d">${free ? "kostenlos, zurück ins Lager" : "kostet Gold oder Demontageset"}</div></div>`);
+        if (!free) {
+            note = `<div class="pick-note">${esc(current.name)} ist nicht kostenlos ausbaubar. Beim Tauschen zeigt WG vorher den Preis (Gold / Demontageset).</div>`;
+        }
+    }
+    return `<div class="pick" data-scroll="70">${note}${rows.join("")}</div>`;
+}
+
+function renderDevices(d) {
+    const cards = d.devices.map((s) => {
+        const it = s.item;
+        const open = ui.openDev === s.slot;
+        const stripe = (s.slotCats || []).filter((c) => CAT_NAMES[c]).map((c) => `<div class="stripe cat-${c}"></div>`).join("");
+        return `
+        <div class="slot dev ${it ? "" : "free"} ${open ? "open" : ""}" data-dev="${s.slot}">
+            <div class="stripes">${stripe}</div>
+            <div class="ico" ${it ? bg(it.icon) : ""}></div>
+            <div class="t">${it ? esc(it.name) : "leer"}</div>
+            <div class="slot-tags">${it ? itemTag(it) : ""}${catBonus(it, s.slotCats) ? `<span class="itag bonus">Bonus</span>` : ""}</div>
+        </div>`;
+    }).join("");
+    const openSlot = d.devices.find((s) => s.slot === ui.openDev);
+    return `
+    <div class="section">
+        <div class="section-title"><div class="grow">Ausrüstung</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="slots">${cards}</div>
+        ${openSlot ? renderPickList("dev", openSlot.slot, openSlot.item, openSlot.candidates, openSlot.slotCats, "Keine passende Ausrüstung im Lager") : ""}
+    </div>`;
+}
+
+function renderConsumables(d) {
+    const cards = d.consumables.map((s) => {
+        const it = s.item;
+        const open = ui.openCons === s.slot;
+        return `
+        <div class="slot cons ${it ? "" : "free"} ${open ? "open" : ""}" data-cons="${s.slot}">
+            <div class="ico" ${it ? bg(it.icon) : ""}></div>
+            <div class="t">${it ? esc(it.name) : "leer"}</div>
+        </div>`;
+    }).join("");
+    const openSlot = d.consumables.find((s) => s.slot === ui.openCons);
+    return `
+    <div class="section">
+        <div class="section-title"><div class="grow">Verbrauchsmaterial</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="slots">${cards}</div>
+        ${openSlot ? renderPickList("cons", openSlot.slot, openSlot.item, openSlot.candidates, [], "Kein passendes Verbrauchsmaterial im Lager") : ""}
+    </div>`;
+}
+
 function renderSide() {
     const d = data.detail;
     if (!d) {
@@ -350,15 +418,8 @@ function renderSide() {
 
             ${renderAmmo(d)}
 
-            <div class="section">
-                <div class="section-title"><div class="grow">Ausrüstung</div></div>
-                ${renderSlots(d.devices, d.devices.length, "leer")}
-            </div>
-
-            <div class="section">
-                <div class="section-title"><div class="grow">Verbrauchsmaterial</div></div>
-                ${renderSlots(d.consumables, d.consumables.length, "leer")}
-            </div>
+            ${renderDevices(d)}
+            ${renderConsumables(d)}
         </div>
         <div class="side-foot">
             <div class="lock ${d.ready && !pendingAmmo ? "" : "off"}" data-act="lock">Einloggen</div>
@@ -442,11 +503,33 @@ root.addEventListener("click", (e) => {
         const cd = Number(el.getAttribute("data-cd"));
         if (cd !== data.selected) {
             ui.openSlot = -1;
+            ui.openDev = -1;
+            ui.openCons = -1;
             ui.ammo = null;
             data.selected = cd; // instant highlight, Python sends the details
             render();
             send({ action: "select", cd: cd });
         }
+    } else if ((el = closest(e.target, "data-setdev"))) {
+        ui.openDev = -1;
+        send({ action: "setDevice", slot: Number(el.getAttribute("data-pslot")), cd: Number(el.getAttribute("data-setdev")) });
+        render();
+    } else if ((el = closest(e.target, "data-setcons"))) {
+        ui.openCons = -1;
+        send({ action: "setConsumable", slot: Number(el.getAttribute("data-pslot")), cd: Number(el.getAttribute("data-setcons")) });
+        render();
+    } else if ((el = closest(e.target, "data-dev"))) {
+        const slot = Number(el.getAttribute("data-dev"));
+        ui.openDev = ui.openDev === slot ? -1 : slot;
+        ui.openCons = -1;
+        ui.openSlot = -1;
+        render();
+    } else if ((el = closest(e.target, "data-cons"))) {
+        const slot = Number(el.getAttribute("data-cons"));
+        ui.openCons = ui.openCons === slot ? -1 : slot;
+        ui.openDev = -1;
+        ui.openSlot = -1;
+        render();
     } else if ((el = closest(e.target, "data-ammo"))) {
         changeAmmo(Number(el.getAttribute("data-ammo")), Number(el.getAttribute("data-delta")));
     } else if (closest(e.target, "data-ammo-fill")) {
@@ -518,8 +601,8 @@ document.addEventListener("wheel", (e) => {
 
 document.addEventListener("keydown", (e) => {
     if (e.keyCode === 27) {
-        if (ui.openSlot !== -1) {
-            ui.openSlot = -1;
+        if (ui.openSlot !== -1 || ui.openDev !== -1 || ui.openCons !== -1) {
+            ui.openSlot = ui.openDev = ui.openCons = -1;
             render();
         } else {
             send({ action: "close" });

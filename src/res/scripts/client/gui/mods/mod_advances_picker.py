@@ -31,7 +31,7 @@ from helpers import dependency
 from helpers.i18n import makeString
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.4.1'
+__version__ = '0.5.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -172,8 +172,8 @@ class AdvancesPickerView(ViewImpl):
          'crew': self._packCrew(vehicle),
          'shells': self._packShells(vehicle),
          'ammoMax': vehicle.ammoMaxSize,
-         'devices': [ ({'name': _u(d.userName), 'icon': _itemIcon(d)} if d is not None else None) for d in vehicle.optDevices.installed ],
-         'consumables': [ ({'name': _u(c.userName), 'icon': _itemIcon(c)} if c is not None else None) for c in vehicle.consumables.installed ]}
+         'devices': self._packDevices(vehicle),
+         'consumables': self._packConsumables(vehicle)}
 
     def _packShells(self, vehicle):
         shots = {}
@@ -207,6 +207,70 @@ class AdvancesPickerView(ViewImpl):
              'currency': currency,
              'damage': damage,
              'pen': pen})
+        return result
+
+    def _packItem(self, item):
+        return {'cd': item.intCD,
+         'name': _u(item.userName),
+         'icon': _itemIcon(item),
+         'depot': item.inventoryCount,
+         'removable': bool(getattr(item, 'isRemovable', True)),
+         'trophy': bool(getattr(item, 'isTrophy', False)),
+         'deluxe': bool(getattr(item, 'isDeluxe', False)),
+         'modernized': bool(getattr(item, 'isModernized', False)),
+         'cats': sorted(getattr(item.descriptor, 'categories', ()) or ())}
+
+    def _ownedItems(self, itemTypeID):
+        items = self._itemsCache.items.getItems(itemTypeID, REQ_CRITERIA.INVENTORY)
+        return [ item for item in items.itervalues() if item.inventoryCount > 0 ]
+
+    def _packDevices(self, vehicle):
+        owned = self._ownedItems(GUI_ITEM_TYPE.OPTIONALDEVICE)
+        result = []
+        for slot, device in enumerate(vehicle.optDevices.installed):
+            # test fitting on a copy where this slot is empty
+            test = self._itemsCache.items.getVehicleCopy(vehicle)
+            if test.descriptor.optionalDevices[slot] is not None:
+                test.descriptor.removeOptionalDevice(slot)
+            candidates = []
+            for item in owned:
+                if device is not None and item.intCD == device.intCD:
+                    continue
+                try:
+                    if item.mayInstall(test, slot)[0]:
+                        candidates.append(self._packItem(item))
+                except Exception:
+                    pass
+            candidates.sort(key=lambda c: (not c['deluxe'], not c['trophy'], c['name']))
+            try:
+                slotCats = sorted(vehicle.optDevices.slots[slot].categories or ())
+            except Exception:
+                slotCats = []
+            result.append({'slot': slot,
+             'item': self._packItem(device) if device is not None else None,
+             'slotCats': slotCats,
+             'candidates': candidates})
+        return result
+
+    def _packConsumables(self, vehicle):
+        owned = self._ownedItems(GUI_ITEM_TYPE.EQUIPMENT)
+        installed = list(vehicle.consumables.installed)
+        installedCDs = set(c.intCD for c in installed if c is not None)
+        result = []
+        for slot, item in enumerate(installed):
+            candidates = []
+            for other in owned:
+                if other.intCD in installedCDs:
+                    continue
+                try:
+                    if other.mayInstall(vehicle, slot)[0]:
+                        candidates.append(self._packItem(other))
+                except Exception:
+                    pass
+            candidates.sort(key=lambda c: c['name'])
+            result.append({'slot': slot,
+             'item': self._packItem(item) if item is not None else None,
+             'candidates': candidates})
         return result
 
     def _canReturnCrew(self, vehicle):
@@ -277,6 +341,10 @@ class AdvancesPickerView(ViewImpl):
                 self._unloadTankman(int(args.get('slot')))
             elif action == 'returnCrew':
                 self._returnCrew()
+            elif action == 'setDevice':
+                self._setDevice(int(args.get('slot')), int(args.get('cd', 0)))
+            elif action == 'setConsumable':
+                self._setConsumable(int(args.get('slot')), int(args.get('cd', 0)))
             elif action == 'setAmmo':
                 self._applyAmmo(args.get('counts', ''))
             elif action == 'lock':
@@ -322,6 +390,47 @@ class AdvancesPickerView(ViewImpl):
         if changed:
             # credits shown and confirmed in our bar; WG only asks again if gold must be exchanged
             ActionsFactory.doAction(ActionsFactory.BUY_AND_INSTALL_SHELLS, copy, confirmOnlyExchange=True)
+
+    @adisp.adisp_process
+    def _setDevice(self, slot, intCD):
+        vehicle = self._selectedVehicle()
+        if vehicle is None:
+            return
+        installed = vehicle.optDevices.installed[slot]
+        if installed is not None:
+            if installed.intCD == intCD:
+                return
+            # WG's own removal: free for removable devices, otherwise WG shows its gold / demount kit dialog
+            everywhere = vehicle.optDevices.setupLayouts.getIntCDs().count(installed.intCD) == 1
+            action = ActionsFactory.getAction(ActionsFactory.REMOVE_OPT_DEVICE, vehicle, installed, slot, False, bool(intCD), everywhere)
+            if action is None:
+                return
+            removed = yield action.doAction()
+            if not removed:
+                return
+        if not intCD:
+            return
+        item = self._itemsCache.items.getItemByCD(intCD)
+        vehicle = self._selectedVehicle()
+        if item is None or vehicle is None or item.inventoryCount <= 0:
+            return
+        copy = self._itemsCache.items.getVehicleCopy(vehicle)
+        if copy.descriptor.optionalDevices[slot] is not None:
+            copy.descriptor.removeOptionalDevice(slot)
+        copy.optDevices.layout[slot] = item
+        copy.descriptor.installOptionalDevice(item.intCD, slot)
+        ActionsFactory.doAction(ActionsFactory.BUY_AND_INSTALL_OPT_DEVICES, copy, confirmOnlyExchange=True)
+
+    def _setConsumable(self, slot, intCD):
+        vehicle = self._selectedVehicle()
+        if vehicle is None:
+            return
+        item = self._itemsCache.items.getItemByCD(intCD) if intCD else None
+        if item is not None and item.inventoryCount <= 0:
+            return  # owned items only, never buy
+        copy = self._itemsCache.items.getVehicleCopy(vehicle)
+        copy.consumables.layout[slot] = item
+        ActionsFactory.doAction(ActionsFactory.BUY_AND_INSTALL_CONSUMABLES, copy, confirmOnlyExchange=True)
 
     @adisp.adisp_process
     def _returnCrew(self):

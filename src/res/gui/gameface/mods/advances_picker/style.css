@@ -343,7 +343,7 @@ body {
     flex-wrap: wrap;
 }
 .slot {
-    width: 118rem;
+    width: 96rem;
     margin: 0 8rem 8rem 0;
     padding: 8rem;
     display: flex;
@@ -529,3 +529,56 @@ body {
     border: 2rem solid #ffb02e;
 }
 .slider:hover .slider-thumb { background-color: #ffe2a8; }
+
+/* equipment / consumables */
+.slot.dev, .slot.cons { position: relative; }
+.slot.dev:hover, .slot.cons:hover { border-color: rgba(255, 255, 255, 0.35); }
+.slot.open { border-color: #ffb02e; border-style: solid; }
+.stripes {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3rem;
+    display: flex;
+    flex-direction: row;
+}
+.stripe { flex-grow: 1; height: 3rem; }
+.cat-firepower { background-color: #e0573f; }
+.cat-survivability { background-color: #5fb35a; }
+.cat-mobility { background-color: #4f9fe0; }
+.cat-stealth { background-color: #b47be0; }
+.slot-tags { height: 16rem; margin-top: 2rem; display: flex; flex-direction: row; justify-content: center; }
+.itag {
+    font-size: 11rem;
+    padding: 0 5rem;
+    margin: 0 2rem;
+    border-radius: 3rem;
+    line-height: 16rem;
+}
+.itag.trophy { background-color: rgba(79, 159, 224, 0.25); color: #9ccbf2; }
+.itag.deluxe { background-color: rgba(255, 200, 100, 0.25); color: #ffc864; }
+.itag.bonus { background-color: rgba(111, 191, 115, 0.2); color: #9fd8a2; }
+.cat {
+    width: 8rem;
+    height: 8rem;
+    border-radius: 4rem;
+    margin-left: 4rem;
+}
+.pick-ico {
+    width: 28rem;
+    height: 28rem;
+    margin-right: 8rem;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.pick-row .itag { margin-left: 6rem; }
+.pick-note {
+    padding: 6rem 8rem;
+    margin-bottom: 4rem;
+    font-size: 12rem;
+    color: #ffcf7a;
+    background-color: rgba(255, 176, 46, 0.1);
+    border-radius: 3rem;
+}
