@@ -32,7 +32,7 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.8.0'
+__version__ = '0.8.1'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -166,6 +166,7 @@ class AdvancesPickerView(ViewImpl):
         self._filters = _loadFilters()
         self._openArgs = (levelsRange, frozenCDs)
         self._aePolling = False
+        self._crewTried = set()  # vehicles whose last crew was already requested in this picker session
 
     @property
     def viewModel(self):
@@ -476,6 +477,7 @@ class AdvancesPickerView(ViewImpl):
             if action == 'select':
                 self._selectedCD = int(args.get('cd', 0))
                 self._selectInHangar(self._selectedVehicle())
+                self._autoReturnCrew(self._selectedVehicle())
                 self._push()
             elif action == 'autoEquipApply':
                 self._autoEquipApply()
@@ -519,6 +521,17 @@ class AdvancesPickerView(ViewImpl):
         vehicle = self._selectedVehicle()
         if vehicle is not None:
             ActionsFactory.doAction(ActionsFactory.UNLOAD_TANKMAN, vehicle.invID, slot)
+
+    def _autoReturnCrew(self, vehicle):
+        # same as WG's "return previous crew", once per vehicle per picker session; can be switched off in the bar
+        if vehicle is None or self._filters.get('autoCrew', True) is False:
+            return
+        if vehicle.intCD in self._crewTried or vehicle.isCrewLocked or vehicle.isLocked:
+            return
+        if not self._canReturnCrew(vehicle):
+            return
+        self._crewTried.add(vehicle.intCD)
+        self._returnCrew()
 
     def _autoEquipApply(self):
         ae = _autoEquip()

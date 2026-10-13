@@ -630,3 +630,6 @@ body {
 /* auto equip (Z4imon) status */
 .ae-state { font-size: 14rem; padding: 2rem 2rem; }
 .ok-text { color: #9fd8a2; }
+
+.section-title .btn.small { margin-left: 6rem; }
+.btn.switch.on { border-color: rgba(111, 191, 115, 0.7); color: #9fd8a2; }

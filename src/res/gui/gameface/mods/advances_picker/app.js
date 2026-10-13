@@ -11,6 +11,7 @@ const ui = {
     types: new Set(),
     readyOnly: false,
     playlist: "", // id of the game's vehicle playlist used as filter
+    autoCrew: true, // return the last crew when a tank is clicked
     search: "",
     openSlot: -1,
     ammo: null, // pending shell counts {cd: count} for data.detail.cd
@@ -29,6 +30,7 @@ function applySavedFilters(f) {
     ui.types = new Set(f.types || []);
     ui.readyOnly = !!f.readyOnly;
     ui.playlist = f.playlist || "";
+    ui.autoCrew = f.autoCrew !== false;
 }
 
 let saveTimer = 0;
@@ -36,7 +38,7 @@ function saveFilters() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
         saveTimer = 0;
-        send({ action: "saveFilters", filters: JSON.stringify({ nations: [...ui.nations], types: [...ui.types], readyOnly: ui.readyOnly, playlist: ui.playlist }) });
+        send({ action: "saveFilters", filters: JSON.stringify({ nations: [...ui.nations], types: [...ui.types], readyOnly: ui.readyOnly, playlist: ui.playlist, autoCrew: ui.autoCrew }) });
     }, 400);
 }
 
@@ -466,7 +468,8 @@ function renderSide() {
 
             <div class="section">
                 <div class="section-title"><div class="grow">Besatzung${missing ? ` · <span class="warn">${missing} fehlt</span>` : ""}</div>
-                    ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">Vorherige Besatzung zurückholen</div>` : ""}
+                    ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">Zurückholen</div>` : ""}
+                    <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1">Letzte Besatzung automatisch: ${ui.autoCrew ? "an" : "aus"}</div>
                 </div>
                 ${d.crewLocked ? `<div class="muted" style="margin-bottom: 8rem;">Besatzung ist gerade gesperrt (Fahrzeug im Zug/Gefecht).</div>` : ""}
                 ${d.crew.map((m) => renderMember(m, d)).join("")}
@@ -551,6 +554,10 @@ root.addEventListener("click", (e) => {
         ui.types.has(t) ? ui.types.delete(t) : ui.types.add(t);
         render();
         saveFilters();
+    } else if (closest(e.target, "data-autocrew")) {
+        ui.autoCrew = !ui.autoCrew;
+        saveFilters();
+        render();
     } else if ((el = closest(e.target, "data-playlist"))) {
         const id = el.getAttribute("data-playlist");
         ui.playlist = ui.playlist === id ? "" : id;
