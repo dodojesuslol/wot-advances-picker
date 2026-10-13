@@ -31,7 +31,7 @@ from helpers import dependency
 from helpers.i18n import makeString
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.3.2'
+__version__ = '0.4.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -170,10 +170,44 @@ class AdvancesPickerView(ViewImpl):
          'crewLocked': bool(vehicle.isCrewLocked or vehicle.isLocked),
          'canReturnCrew': self._canReturnCrew(vehicle),
          'crew': self._packCrew(vehicle),
-         'shells': [ {'name': _u(s.userName), 'icon': _itemIcon(s), 'count': s.count} for s in vehicle.shells.installed if s is not None ],
+         'shells': self._packShells(vehicle),
          'ammoMax': vehicle.ammoMaxSize,
          'devices': [ ({'name': _u(d.userName), 'icon': _itemIcon(d)} if d is not None else None) for d in vehicle.optDevices.installed ],
          'consumables': [ ({'name': _u(c.userName), 'icon': _itemIcon(c)} if c is not None else None) for c in vehicle.consumables.installed ]}
+
+    def _packShells(self, vehicle):
+        shots = {}
+        try:
+            for shot in vehicle.descriptor.gun.shots:
+                shots[shot.shell.compactDescr] = shot
+        except Exception:
+            _logger.exception('gun shots lookup failed')
+        result = []
+        for shell in vehicle.shells.installed:
+            if shell is None:
+                continue
+            shot = shots.get(shell.intCD)
+            stock = self._itemsCache.items.getItemByCD(shell.intCD)
+            price = shell.getBuyPrice().price
+            currency = price.getCurrency()
+            try:
+                damage = int(shot.shell.damage[0]) if shot is not None else 0
+                pen = int(shot.piercingPower[0]) if shot is not None else 0
+            except Exception:
+                damage = pen = 0
+            result.append({'cd': shell.intCD,
+             'name': _u(shell.userName),
+             'kind': _u(makeString('#item_types:shell/kinds/%s' % shell.type)),
+             'abbr': _u(makeString('#item_types:shell/kindsAbbreviation/%s' % shell.type)),
+             'premium': bool(getattr(shell, 'isPremium', False)),
+             'icon': _itemIcon(shell),
+             'count': shell.count,
+             'depot': stock.inventoryCount if stock is not None else 0,
+             'price': int(price.get(currency, 0) or 0),
+             'currency': currency,
+             'damage': damage,
+             'pen': pen})
+        return result
 
     def _canReturnCrew(self, vehicle):
         last = [ tid for tid in (vehicle.lastCrew or ()) if tid is not None ]
@@ -243,6 +277,8 @@ class AdvancesPickerView(ViewImpl):
                 self._unloadTankman(int(args.get('slot')))
             elif action == 'returnCrew':
                 self._returnCrew()
+            elif action == 'setAmmo':
+                self._applyAmmo(args.get('counts', ''))
             elif action == 'lock':
                 self._lockIn()
             elif action == 'close':
@@ -262,6 +298,30 @@ class AdvancesPickerView(ViewImpl):
         vehicle = self._selectedVehicle()
         if vehicle is not None:
             ActionsFactory.doAction(ActionsFactory.UNLOAD_TANKMAN, vehicle.invID, slot)
+
+    def _applyAmmo(self, countsStr):
+        vehicle = self._selectedVehicle()
+        if vehicle is None:
+            return
+        counts = {}
+        for part in str(countsStr).split(','):
+            if ':' in part:
+                cd, count = part.split(':', 1)
+                counts[int(cd)] = max(0, int(count))
+        if sum(counts.values()) > vehicle.ammoMaxSize:
+            SystemMessages.pushMessage(u'Zu viel Munition (max. %d)' % vehicle.ammoMaxSize, type=SystemMessages.SM_TYPE.Warning)
+            return
+        copy = self._itemsCache.items.getVehicleCopy(vehicle)
+        layout = copy.shells.layout
+        changed = False
+        for slotID, shell in enumerate(layout):
+            if shell is not None and shell.intCD in counts and shell.count != counts[shell.intCD]:
+                shell.count = counts[shell.intCD]
+                layout[slotID] = shell
+                changed = True
+        if changed:
+            # credits shown and confirmed in our bar; WG only asks again if gold must be exchanged
+            ActionsFactory.doAction(ActionsFactory.BUY_AND_INSTALL_SHELLS, copy, confirmOnlyExchange=True)
 
     @adisp.adisp_process
     def _returnCrew(self):

@@ -397,3 +397,85 @@ body {
     color: #8a8c8c;
 }
 .foot-note { margin-top: 8rem; font-size: 13rem; color: #8a8c8c; text-align: center; }
+
+/* ammo editor */
+.shell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8rem 10rem;
+    margin-bottom: 4rem;
+    background-color: rgba(34, 37, 42, 0.95);
+    border: 1rem solid rgba(255, 255, 255, 0.06);
+    border-radius: 4rem;
+}
+.shell.changed { border-color: rgba(255, 176, 46, 0.6); }
+.shell-ico {
+    width: 40rem;
+    height: 40rem;
+    margin-right: 10rem;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.shell-info { flex-grow: 1; width: 0; }
+.shell-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.abbr {
+    font-family: PFDINMax;
+    font-size: 12rem;
+    padding: 1rem 5rem;
+    margin-right: 6rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #e2e2dc;
+}
+.abbr.prem { background-color: rgba(255, 200, 100, 0.25); color: #ffc864; }
+.shell-stats, .shell-stock { font-size: 12rem; color: #8a8c8c; }
+.stepper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.step {
+    min-width: 30rem;
+    height: 30rem;
+    margin-left: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13rem;
+    background-color: rgba(50, 53, 60, 0.95);
+    border: 1rem solid rgba(255, 255, 255, 0.15);
+    border-radius: 3rem;
+}
+.step:hover { border-color: #ffb02e; color: #ffffff; }
+.step.off { opacity: 0.3; }
+.step-val {
+    width: 38rem;
+    text-align: center;
+    font-family: PFDINMax;
+    font-size: 18rem;
+}
+.ammo-tools {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6rem;
+}
+.ammo-tools .btn { margin-right: 6rem; }
+.ammo-tools .grow { flex-grow: 1; }
+.btn.off { opacity: 0.35; }
+.ammo-cost { font-size: 13rem; }
+.apply {
+    margin-top: 8rem;
+    height: 38rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 176, 46, 0.18);
+    border: 1rem solid #ffb02e;
+    border-radius: 4rem;
+    color: #ffcf7a;
+    font-weight: bold;
+}
+.apply:hover { background-color: rgba(255, 176, 46, 0.32); color: #ffffff; }

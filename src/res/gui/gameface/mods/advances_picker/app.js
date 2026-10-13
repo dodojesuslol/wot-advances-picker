@@ -12,6 +12,7 @@ const ui = {
     readyOnly: false,
     search: "",
     openSlot: -1,
+    ammo: null, // pending shell counts {cd: count} for data.detail.cd
 };
 let data = { vehicles: [], detail: null, selected: 0 };
 
@@ -164,6 +165,107 @@ function renderSlots(items, total, label) {
     return `<div class="slots">${out.join("")}</div>`;
 }
 
+function fmt(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function currencyName(c) {
+    return c === "gold" ? "Gold" : c === "crystal" ? "Anleihen" : "Credits";
+}
+
+function ammoCounts(d) {
+    const counts = {};
+    d.shells.forEach((s) => { counts[s.cd] = ui.ammo && ui.ammo[s.cd] != null ? ui.ammo[s.cd] : s.count; });
+    return counts;
+}
+
+function ammoChanged(d) {
+    return !!ui.ammo && d.shells.some((s) => ui.ammo[s.cd] != null && ui.ammo[s.cd] !== s.count);
+}
+
+function ammoCost(d, counts) {
+    const cost = {};
+    d.shells.forEach((s) => {
+        const buy = Math.max(0, counts[s.cd] - s.count - s.depot);
+        if (buy > 0) cost[s.currency] = (cost[s.currency] || 0) + buy * s.price;
+    });
+    return cost;
+}
+
+function renderAmmo(d) {
+    const counts = ammoCounts(d);
+    const total = d.shells.reduce((sum, s) => sum + counts[s.cd], 0);
+    const full = total >= d.ammoMax;
+    const changed = ammoChanged(d);
+    const cost = ammoCost(d, counts);
+    const costText = Object.keys(cost).map((c) => `${fmt(cost[c])} ${currencyName(c)}`).join(" + ");
+    const rows = d.shells.map((s) => {
+        const n = counts[s.cd];
+        const diff = n - s.count;
+        const buy = Math.max(0, n - s.count - s.depot);
+        return `
+        <div class="shell ${diff ? "changed" : ""}">
+            <div class="shell-ico" ${bg(s.icon)}></div>
+            <div class="shell-info">
+                <div class="shell-name"><span class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</span>${esc(s.name)}</div>
+                <div class="shell-stats">Durchschlag ${s.pen} · Schaden ${s.damage}</div>
+                <div class="shell-stock">Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}${diff ? ` · ${diff > 0 ? "+" : ""}${diff}` : ""}</div>
+            </div>
+            <div class="stepper">
+                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-5">−5</div>
+                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">−</div>
+                <div class="step-val">${n}</div>
+                <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="1">+</div>
+                <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="5">+5</div>
+            </div>
+        </div>`;
+    }).join("");
+    return `
+    <div class="section">
+        <div class="section-title"><div class="grow">Munition</div><div class="${total < d.ammoMax ? "warn" : "muted"}">${total} / ${d.ammoMax}</div></div>
+        ${rows}
+        <div class="ammo-tools">
+            <div class="btn small ${full ? "off" : ""}" data-ammo-fill="1">Auffüllen</div>
+            ${changed ? `<div class="btn small" data-ammo-reset="1">Zurücksetzen</div>` : ""}
+            <div class="grow"></div>
+            ${costText ? `<div class="ammo-cost">Kosten: <span class="accent">${costText}</span></div>` : changed ? `<div class="ammo-cost muted">Aus dem Lager, kostenlos</div>` : ""}
+        </div>
+        ${changed ? `<div class="apply" data-ammo-apply="1">Munition übernehmen${costText ? ` · ${costText}` : ""}</div>` : ""}
+    </div>`;
+}
+
+function changeAmmo(cd, delta) {
+    const d = data.detail;
+    if (!d) return;
+    const counts = ammoCounts(d);
+    const total = d.shells.reduce((sum, s) => sum + counts[s.cd], 0);
+    let next = counts[cd] + delta;
+    if (delta > 0) next = counts[cd] + Math.min(delta, d.ammoMax - total);
+    next = Math.max(0, next);
+    ui.ammo = Object.assign({}, counts, { [cd]: next });
+    render();
+}
+
+function fillAmmo() {
+    const d = data.detail;
+    if (!d || !d.shells.length) return;
+    const counts = ammoCounts(d);
+    const total = d.shells.reduce((sum, s) => sum + counts[s.cd], 0);
+    // remaining space goes to the first (standard) shell
+    counts[d.shells[0].cd] += Math.max(0, d.ammoMax - total);
+    ui.ammo = counts;
+    render();
+}
+
+function applyAmmo() {
+    const d = data.detail;
+    if (!d || !ammoChanged(d)) return;
+    const counts = ammoCounts(d);
+    send({ action: "setAmmo", counts: Object.keys(counts).map((cd) => `${cd}:${counts[cd]}`).join(",") });
+    ui.ammo = null;
+    render();
+}
+
 function renderSide() {
     const d = data.detail;
     if (!d) {
@@ -173,7 +275,7 @@ function renderSide() {
             <div class="side-foot"><div class="lock off">Einloggen</div></div>
         </div>`;
     }
-    const ammoTotal = d.shells.reduce((s, x) => s + x.count, 0);
+    const pendingAmmo = ammoChanged(d);
     const missing = d.crew.filter((m) => !m.tankman).length;
     return `
     <div class="side">
@@ -191,12 +293,7 @@ function renderSide() {
                 ${d.crew.map((m) => renderMember(m, d)).join("")}
             </div>
 
-            <div class="section">
-                <div class="section-title"><div class="grow">Munition</div><div class="${ammoTotal < d.ammoMax ? "warn" : "muted"}">${ammoTotal} / ${d.ammoMax}</div></div>
-                <div class="slots">
-                    ${d.shells.map((s) => `<div class="slot"><div class="ico" ${bg(s.icon)}></div><div class="cnt">${s.count}</div><div class="t">${esc(s.name)}</div></div>`).join("")}
-                </div>
-            </div>
+            ${renderAmmo(d)}
 
             <div class="section">
                 <div class="section-title"><div class="grow">Ausrüstung</div></div>
@@ -209,8 +306,8 @@ function renderSide() {
             </div>
         </div>
         <div class="side-foot">
-            <div class="lock ${d.ready ? "" : "off"}" data-act="lock">Einloggen</div>
-            <div class="foot-note">${d.ready ? "Setzt das Fahrzeug in deinen Slot" : esc(d.state)}</div>
+            <div class="lock ${d.ready && !pendingAmmo ? "" : "off"}" data-act="lock">Einloggen</div>
+            <div class="foot-note">${pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? "Setzt das Fahrzeug in deinen Slot" : esc(d.state)}</div>
         </div>
     </div>`;
 }
@@ -290,10 +387,20 @@ root.addEventListener("click", (e) => {
         const cd = Number(el.getAttribute("data-cd"));
         if (cd !== data.selected) {
             ui.openSlot = -1;
+            ui.ammo = null;
             data.selected = cd; // instant highlight, Python sends the details
             render();
             send({ action: "select", cd: cd });
         }
+    } else if ((el = closest(e.target, "data-ammo"))) {
+        changeAmmo(Number(el.getAttribute("data-ammo")), Number(el.getAttribute("data-delta")));
+    } else if (closest(e.target, "data-ammo-fill")) {
+        fillAmmo();
+    } else if (closest(e.target, "data-ammo-reset")) {
+        ui.ammo = null;
+        render();
+    } else if (closest(e.target, "data-ammo-apply")) {
+        applyAmmo();
     } else if ((el = closest(e.target, "data-equip"))) {
         ui.openSlot = -1;
         send({ action: "equip", tankman: Number(el.getAttribute("data-equip")), slot: Number(el.getAttribute("data-slot")) });
@@ -309,7 +416,7 @@ root.addEventListener("click", (e) => {
         render();
     } else if ((el = closest(e.target, "data-act"))) {
         const act = el.getAttribute("data-act");
-        if (act === "lock" && !(data.detail && data.detail.ready)) return;
+        if (act === "lock" && !(data.detail && data.detail.ready && !ammoChanged(data.detail))) return;
         send({ action: act });
     }
 });
@@ -372,6 +479,7 @@ function readModel() {
         const raw = window.model && window.model.data;
         if (!raw) return;
         const next = JSON.parse(raw);
+        if (!next.detail || !data.detail || next.detail.cd !== data.detail.cd) ui.ammo = null;
         data = next;
         render();
     } catch (e) {
