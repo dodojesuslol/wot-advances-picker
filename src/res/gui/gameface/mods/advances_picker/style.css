@@ -363,7 +363,8 @@ body {
     flex-wrap: wrap;
 }
 .slot {
-    width: 96rem;
+    box-sizing: border-box;
+    width: 100rem;
     margin: 0 8rem 8rem 0;
     padding: 8rem;
     display: flex;
@@ -633,3 +634,18 @@ body {
 
 .section-title .btn.small { margin-left: 6rem; }
 .btn.switch.on { border-color: rgba(111, 191, 115, 0.7); color: #9fd8a2; }
+
+/* dual equipment sets */
+.setup-head { display: flex; flex-direction: row; align-items: center; margin: 4rem 0 6rem 0; }
+.setup-head .grow { flex-grow: 1; }
+.setup-tag {
+    font-size: 12rem;
+    padding: 1rem 7rem;
+    margin-right: 8rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #b8b8b0;
+}
+.setup-tag.on { background-color: rgba(255, 176, 46, 0.2); color: #ffcf7a; }
+.slot.mini { opacity: 0.7; padding: 4rem; }
+.slot.mini .ico { width: 32rem; height: 32rem; }

@@ -419,11 +419,28 @@ function renderDevices(d) {
         </div>`;
     }).join("");
     const openSlot = d.devices.find((s) => s.slot === ui.openDev);
+    const ds = d.deviceSetups;
+    let setupHead = "";
+    let otherSetup = "";
+    if (ds) {
+        const other = ds.active === 0 ? 1 : 0;
+        setupHead = `<div class="setup-head"><span class="setup-tag on">Set ${ds.active + 1} · aktiv</span><span class="muted">bearbeitbar</span></div>`;
+        const items = (ds.sets[other] || []).map((it) => `
+            <div class="slot mini ${it ? "" : "free"}">
+                <div class="ico" ${it ? bg(it.icon) : ""}></div>
+                <div class="t">${it ? esc(it.name) : "leer"}</div>
+            </div>`).join("");
+        otherSetup = `
+        <div class="setup-head"><span class="setup-tag">Set ${other + 1}</span><div class="grow"></div><div class="btn small" data-setup="${other}">Set ${other + 1} aktivieren</div></div>
+        <div class="slots">${items}</div>`;
+    }
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Ausrüstung</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="section-title"><div class="grow">Ausrüstung${ds ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
+        ${setupHead}
         <div class="slots">${cards}</div>
         ${openSlot ? renderPickList("dev", openSlot.slot, openSlot.item, openSlot.candidates, openSlot.slotCats, "Keine passende Ausrüstung im Lager") : ""}
+        ${otherSetup}
     </div>`;
 }
 
@@ -586,6 +603,10 @@ root.addEventListener("click", (e) => {
             render();
             send({ action: "select", cd: cd });
         }
+    } else if ((el = closest(e.target, "data-setup"))) {
+        ui.openDev = -1;
+        send({ action: "switchSetup", idx: Number(el.getAttribute("data-setup")) });
+        render();
     } else if ((el = closest(e.target, "data-setdev"))) {
         ui.openDev = -1;
         send({ action: "setDevice", slot: Number(el.getAttribute("data-pslot")), cd: Number(el.getAttribute("data-setdev")) });
