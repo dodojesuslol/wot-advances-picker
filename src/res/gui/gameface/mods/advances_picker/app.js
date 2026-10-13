@@ -10,6 +10,7 @@ const ui = {
     nations: new Set(),
     types: new Set(),
     readyOnly: false,
+    playlist: "", // id of the game's vehicle playlist used as filter
     search: "",
     openSlot: -1,
     ammo: null, // pending shell counts {cd: count} for data.detail.cd
@@ -48,12 +49,18 @@ function typeUrl(type) {
 
 // --- filtering ------------------------------------------------------------------
 
+function playlistHas(id, cd) {
+    const pl = (data.playlists || []).find((p) => p.id === id);
+    return !pl || pl.cds.indexOf(cd) !== -1;
+}
+
 function filtered() {
     const q = ui.search.trim().toLowerCase();
     return data.vehicles
         .filter((v) => !ui.nations.size || ui.nations.has(v.nation))
         .filter((v) => !ui.types.size || ui.types.has(v.type))
         .filter((v) => !ui.readyOnly || v.ready)
+        .filter((v) => !ui.playlist || playlistHas(ui.playlist, v.cd))
         .filter((v) => !q || v.name.toLowerCase().includes(q) || v.fullName.toLowerCase().includes(q))
         .sort((a, b) =>
             (b.ready - a.ready) ||
@@ -88,15 +95,27 @@ function renderFilters(count) {
         <div class="fgroup">
             ${types.map((t) => `<div class="toggle ${ui.types.has(t) ? "on" : ""}" data-type="${t}" title="${esc(TYPE_NAMES[t])}"><div class="img typeicon" ${bg(typeUrl(t))}></div></div>`).join("")}
         </div>
+        ${renderPlaylists()}
         <div class="fgroup">
             <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">Nur einsatzbereit</div>
-            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
+            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
         </div>
         <div class="fgroup">
             <input class="search" id="search" type="text" placeholder="Suchen…" value="${esc(ui.search)}" />
             <div class="count">${count} / ${data.vehicles.length}</div>
         </div>
     </div>`;
+}
+
+function renderPlaylists() {
+    const lists = data.playlists || [];
+    if (!lists.length) return "";
+    const chips = lists.map((p) => {
+        const n = data.vehicles.filter((v) => p.cds.indexOf(v.cd) !== -1).length;
+        return `<div class="toggle pl ${ui.playlist === p.id ? "on" : ""} ${n ? "" : "empty"}" data-playlist="${esc(p.id)}">
+            <span class="pl-icon">≡</span>${esc(p.title)}<span class="pl-count">${n}</span></div>`;
+    }).join("");
+    return `<div class="fgroup playlists">${chips}</div>`;
 }
 
 function renderCard(v) {
@@ -491,6 +510,10 @@ root.addEventListener("click", (e) => {
         const t = el.getAttribute("data-type");
         ui.types.has(t) ? ui.types.delete(t) : ui.types.add(t);
         render();
+    } else if ((el = closest(e.target, "data-playlist"))) {
+        const id = el.getAttribute("data-playlist");
+        ui.playlist = ui.playlist === id ? "" : id;
+        render();
     } else if (closest(e.target, "data-ready")) {
         ui.readyOnly = !ui.readyOnly;
         render();
@@ -498,6 +521,7 @@ root.addEventListener("click", (e) => {
         ui.nations.clear();
         ui.types.clear();
         ui.readyOnly = false;
+        ui.playlist = "";
         ui.search = "";
         render();
     } else if ((el = closest(e.target, "data-cd"))) {
@@ -618,6 +642,7 @@ function readModel() {
         const raw = window.model && window.model.data;
         if (!raw) return;
         const next = JSON.parse(raw);
+        if (ui.playlist && !(next.playlists || []).some((p) => p.id === ui.playlist)) ui.playlist = "";
         if (!next.detail || !data.detail || next.detail.cd !== data.detail.cd) ui.ammo = null;
         data = next;
         render();

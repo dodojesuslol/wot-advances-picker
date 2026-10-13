@@ -582,3 +582,18 @@ body {
     background-color: rgba(255, 176, 46, 0.1);
     border-radius: 3rem;
 }
+
+/* vehicle playlists (game's own) */
+.toggle.pl { padding: 0 10rem; white-space: nowrap; }
+.toggle.pl.empty { opacity: 0.45; }
+.pl-icon { margin-right: 6rem; color: #ffb02e; }
+.pl-count {
+    margin-left: 7rem;
+    padding: 0 5rem;
+    font-size: 12rem;
+    line-height: 16rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #b8b8b0;
+}
+.filters .fgroup { margin-top: 3rem; margin-bottom: 3rem; }

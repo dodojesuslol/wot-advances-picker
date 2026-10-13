@@ -29,10 +29,10 @@ from gui.shared.gui_items.Vehicle import VEHICLE_TYPES_ORDER, getIconPath, getIc
 from gui.shared.utils.requesters import REQ_CRITERIA
 from helpers import dependency
 from helpers.i18n import makeString
-from skeletons.gui.game_control import IWotPlusController
+from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.5.1'
+__version__ = '0.6.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -97,6 +97,7 @@ class AdvancesPickerModel(ViewModel):
 class AdvancesPickerView(ViewImpl):
     _itemsCache = dependency.descriptor(IItemsCache)
     _wotPlus = dependency.descriptor(IWotPlusController)
+    _playlistsCtrl = dependency.descriptor(IVehiclePlaylistsController)
 
     def __init__(self, layoutID, levelsRange, frozenCDs, currentVehicleCD=0):
         settings = ViewSettings(layoutID, flags=ViewFlags.VIEW, model=AdvancesPickerModel())
@@ -155,7 +156,31 @@ class AdvancesPickerView(ViewImpl):
          'version': __version__,
          'selected': self._selectedCD,
          'vehicles': items,
+         'playlists': self._packPlaylists(),
          'detail': self._packDetail(vehicles.get(self._selectedCD)) if self._selectedCD else None}
+
+    def _packPlaylists(self):
+        # the game's own 2.0 vehicle playlists: JSON {title, createdAt, modifiedAt, list: [intCD, ...]}
+        result = []
+        try:
+            if not self._playlistsCtrl.isEnabled:
+                return result
+            for plID, raw in self._playlistsCtrl.iterPlaylists():
+                try:
+                    data = json.loads(raw)
+                except Exception:
+                    continue
+                cds = []
+                for value in data.get('list', ()):
+                    try:
+                        cds.append(int(value))
+                    except (TypeError, ValueError):
+                        pass
+                result.append({'id': _u(plID), 'title': _u(data.get('title', u'')) or u'Playlist', 'cds': cds})
+        except Exception:
+            _logger.exception('reading vehicle playlists failed')
+        result.sort(key=lambda p: p['title'].lower())
+        return result
 
     def _packDetail(self, vehicle):
         if vehicle is None:
