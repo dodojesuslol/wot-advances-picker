@@ -6,6 +6,7 @@
 # Multi-select (commander slot settings) keeps the old popover.
 import json
 import logging
+import os
 
 import adisp
 import BigWorld
@@ -32,10 +33,36 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
+_FILTERS_FILE = os.path.join('mods', 'configs', 'advances_picker', 'filters.json')  # relative to the game folder
+
+
+def _loadFilters():
+    try:
+        if os.path.isfile(_FILTERS_FILE):
+            with open(_FILTERS_FILE, 'r') as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        _logger.exception('reading %s failed', _FILTERS_FILE)
+    return {}
+
+
+def _saveFilters(raw):
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return
+        folder = os.path.dirname(_FILTERS_FILE)
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+        with open(_FILTERS_FILE, 'w') as f:
+            json.dump(data, f)
+    except Exception:
+        _logger.exception('writing %s failed', _FILTERS_FILE)
 
 
 def _u(value):
@@ -107,6 +134,7 @@ class AdvancesPickerView(ViewImpl):
         self._criteria = getVehicleCriteria(levelsRange, inHangar=True) | ALL_VEHICLES_CRITERIA | REQ_CRITERIA.INVENTORY
         self._selectedCD = currentVehicleCD
         self._refreshPending = False
+        self._filters = _loadFilters()
 
     @property
     def viewModel(self):
@@ -157,6 +185,7 @@ class AdvancesPickerView(ViewImpl):
          'selected': self._selectedCD,
          'vehicles': items,
          'playlists': self._packPlaylists(),
+         'filters': self._filters,
          'detail': self._packDetail(vehicles.get(self._selectedCD)) if self._selectedCD else None}
 
     def _packPlaylists(self):
@@ -377,6 +406,9 @@ class AdvancesPickerView(ViewImpl):
                 self._unloadTankman(int(args.get('slot')))
             elif action == 'returnCrew':
                 self._returnCrew()
+            elif action == 'saveFilters':
+                self._filters = json.loads(args.get('filters', '{}'))
+                _saveFilters(args.get('filters', '{}'))
             elif action == 'setDevice':
                 self._setDevice(int(args.get('slot')), int(args.get('cd', 0)))
             elif action == 'setConsumable':

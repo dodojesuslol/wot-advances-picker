@@ -20,6 +20,25 @@ const ui = {
 
 const CAT_NAMES = { firepower: "Feuerkraft", survivability: "Überlebensfähigkeit", mobility: "Mobilität", stealth: "Tarnung" };
 let data = { vehicles: [], detail: null, selected: 0 };
+let filtersLoaded = false;
+
+// filters are remembered by the Python side in mods/configs/advances_picker/filters.json
+function applySavedFilters(f) {
+    if (!f) return;
+    ui.nations = new Set(f.nations || []);
+    ui.types = new Set(f.types || []);
+    ui.readyOnly = !!f.readyOnly;
+    ui.playlist = f.playlist || "";
+}
+
+let saveTimer = 0;
+function saveFilters() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+        saveTimer = 0;
+        send({ action: "saveFilters", filters: JSON.stringify({ nations: [...ui.nations], types: [...ui.types], readyOnly: ui.readyOnly, playlist: ui.playlist }) });
+    }, 400);
+}
 
 const root = document.getElementById("root");
 
@@ -506,17 +525,21 @@ root.addEventListener("click", (e) => {
         const n = el.getAttribute("data-nation");
         ui.nations.has(n) ? ui.nations.delete(n) : ui.nations.add(n);
         render();
+        saveFilters();
     } else if ((el = closest(e.target, "data-type"))) {
         const t = el.getAttribute("data-type");
         ui.types.has(t) ? ui.types.delete(t) : ui.types.add(t);
         render();
+        saveFilters();
     } else if ((el = closest(e.target, "data-playlist"))) {
         const id = el.getAttribute("data-playlist");
         ui.playlist = ui.playlist === id ? "" : id;
         render();
+        saveFilters();
     } else if (closest(e.target, "data-ready")) {
         ui.readyOnly = !ui.readyOnly;
         render();
+        saveFilters();
     } else if (closest(e.target, "data-reset")) {
         ui.nations.clear();
         ui.types.clear();
@@ -524,6 +547,7 @@ root.addEventListener("click", (e) => {
         ui.playlist = "";
         ui.search = "";
         render();
+        saveFilters();
     } else if ((el = closest(e.target, "data-cd"))) {
         const cd = Number(el.getAttribute("data-cd"));
         if (cd !== data.selected) {
@@ -642,6 +666,10 @@ function readModel() {
         const raw = window.model && window.model.data;
         if (!raw) return;
         const next = JSON.parse(raw);
+        if (!filtersLoaded) {
+            filtersLoaded = true;
+            applySavedFilters(next.filters);
+        }
         if (ui.playlist && !(next.playlists || []).some((p) => p.id === ui.playlist)) ui.playlist = "";
         if (!next.detail || !data.detail || next.detail.cd !== data.detail.cd) ui.ammo = null;
         data = next;
