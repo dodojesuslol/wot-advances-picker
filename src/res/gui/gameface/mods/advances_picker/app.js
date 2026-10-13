@@ -339,8 +339,9 @@ function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
     }
     let note = "";
     if (current) {
-        const free = kind === "cons" || current.removable;
-        rows.push(`<div class="pick-row remove" data-set${kind}="0" data-pslot="${slot}"><div class="n">${esc(current.name)} ausbauen</div><div class="d">${free ? "kostenlos, zurück ins Lager" : "kostet Gold oder Demontageset"}</div></div>`);
+        const free = kind === "cons" || current.freeDemount;
+        const how = !free ? "kostet Gold oder Demontageset" : current.wotPlusFree ? "kostenlos mit WoT Plus" : "kostenlos, zurück ins Lager";
+        rows.push(`<div class="pick-row remove" data-set${kind}="0" data-pslot="${slot}"><div class="n">${esc(current.name)} ausbauen</div><div class="d">${how}</div></div>`);
         if (!free) {
             note = `<div class="pick-note">${esc(current.name)} ist nicht kostenlos ausbaubar. Beim Tauschen zeigt WG vorher den Preis (Gold / Demontageset).</div>`;
         }

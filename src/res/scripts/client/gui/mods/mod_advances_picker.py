@@ -29,9 +29,10 @@ from gui.shared.gui_items.Vehicle import VEHICLE_TYPES_ORDER, getIconPath, getIc
 from gui.shared.utils.requesters import REQ_CRITERIA
 from helpers import dependency
 from helpers.i18n import makeString
+from skeletons.gui.game_control import IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
@@ -95,6 +96,7 @@ class AdvancesPickerModel(ViewModel):
 
 class AdvancesPickerView(ViewImpl):
     _itemsCache = dependency.descriptor(IItemsCache)
+    _wotPlus = dependency.descriptor(IWotPlusController)
 
     def __init__(self, layoutID, levelsRange, frozenCDs, currentVehicleCD=0):
         settings = ViewSettings(layoutID, flags=ViewFlags.VIEW, model=AdvancesPickerModel())
@@ -210,11 +212,20 @@ class AdvancesPickerView(ViewImpl):
         return result
 
     def _packItem(self, item):
+        removable = bool(getattr(item, 'isRemovable', True))
+        wotPlusFree = False
+        if not removable and item.itemTypeID == GUI_ITEM_TYPE.OPTIONALDEVICE:
+            try:
+                wotPlusFree = bool(self._wotPlus.isFreeToDemount(item))  # same check WG's RemoveOptionalDevice uses
+            except Exception:
+                _logger.exception('WoT Plus demount check failed')
         return {'cd': item.intCD,
+         'freeDemount': removable or wotPlusFree,
+         'wotPlusFree': wotPlusFree,
          'name': _u(item.userName),
          'icon': _itemIcon(item),
          'depot': item.inventoryCount,
-         'removable': bool(getattr(item, 'isRemovable', True)),
+         'removable': removable,
          'trophy': bool(getattr(item, 'isTrophy', False)),
          'deluxe': bool(getattr(item, 'isDeluxe', False)),
          'modernized': bool(getattr(item, 'isModernized', False)),
