@@ -668,3 +668,29 @@ body {
 .state { margin-top: 6rem; padding: 4rem 10rem; font-size: 14rem; }
 .section { margin-top: 16rem; }
 .section-title .grow { white-space: nowrap; }
+
+/* compact ammo rows: one line per shell */
+.shell {
+    flex-direction: row;
+    align-items: center;
+    padding: 3rem 8rem;
+    margin-bottom: 2rem;
+}
+.shell .abbr { width: 38rem; text-align: center; margin-right: 6rem; padding: 1rem 0; }
+.shell-info { flex-grow: 0; width: 132rem; }
+.shell-title { width: 132rem; font-size: 13rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell .shell-stats { font-size: 10rem; white-space: nowrap; overflow: hidden; }
+.shell .step { min-width: 22rem; height: 22rem; font-size: 15rem; }
+.shell .slider { height: 22rem; margin: 0 6rem; }
+.shell .slider-track, .shell .slider-reach, .shell .slider-fill { top: 8rem; height: 5rem; }
+.shell .slider-thumb { top: 3rem; width: 16rem; height: 16rem; margin-left: -8rem; border-width: 2rem; }
+.shell .shell-val {
+    min-width: 34rem;
+    font-size: 17rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.shell .shell-diff { font-size: 10rem; margin-left: 0; color: #ffb02e; }
+.ammo-tools { margin-top: 4rem; }
+.apply { height: 30rem; margin-top: 6rem; }

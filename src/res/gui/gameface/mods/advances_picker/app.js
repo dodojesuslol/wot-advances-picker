@@ -239,24 +239,20 @@ function renderAmmo(d) {
         const pct = (v) => (d.ammoMax ? (100 * v / d.ammoMax) : 0).toFixed(2);
         return `
         <div class="shell ${diff ? "changed" : ""}">
-            <div class="shell-top">
-                <div class="shell-ico" ${bg(s.icon)}></div>
-                <div class="shell-info">
-                    <div class="shell-name"><div class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</div><div class="shell-title">${esc(s.name)}</div></div>
-                    <div class="shell-stats">Durchschlag ${s.pen} · Schaden ${s.damage} · Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}</div>
-                </div>
-                <div class="shell-val">${n}${diff ? `<span class="shell-diff">${diff > 0 ? "+" : ""}${diff}</span>` : ""}</div>
+            <div class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</div>
+            <div class="shell-info">
+                <div class="shell-title">${esc(s.name)}</div>
+                <div class="shell-stats">${s.pen} mm · ${s.damage} HP · Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}</div>
             </div>
-            <div class="slider-row">
-                <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">-</div>
-                <div class="slider" data-slider="${s.cd}">
-                    <div class="slider-track"></div>
-                    <div class="slider-reach" style="width: ${pct(reach)}%;"></div>
-                    <div class="slider-fill" style="width: ${pct(n)}%;"></div>
-                    <div class="slider-thumb" style="left: ${pct(n)}%;"></div>
-                </div>
-                <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="1">+</div>
+            <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">-</div>
+            <div class="slider" data-slider="${s.cd}">
+                <div class="slider-track"></div>
+                <div class="slider-reach" style="width: ${pct(reach)}%;"></div>
+                <div class="slider-fill" style="width: ${pct(n)}%;"></div>
+                <div class="slider-thumb" style="left: ${pct(n)}%;"></div>
             </div>
+            <div class="step ${full ? "off" : ""}" data-ammo="${s.cd}" data-delta="1">+</div>
+            <div class="shell-val">${n}${diff ? `<div class="shell-diff">${diff > 0 ? "+" : ""}${diff}</div>` : ""}</div>
         </div>`;
     }).join("");
     return `
