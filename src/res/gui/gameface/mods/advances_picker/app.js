@@ -146,7 +146,7 @@ function renderMember(m, d) {
         if (!m.candidates.length) {
             rows.unshift(`<div class="pick-row"><div class="n muted">Keine passenden ${esc(m.roleName)} dieser Nation verfügbar</div></div>`);
         }
-        html += `<div class="pick">${rows.join("")}</div>`;
+        html += `<div class="pick" data-scroll="70">${rows.join("")}</div>`;
     }
     return html;
 }
@@ -169,7 +169,7 @@ function renderSide() {
     if (!d) {
         return `
         <div class="side">
-            <div class="side-scroll"><div class="side-hint">Wähle links ein Fahrzeug aus.<br/><br/>Danach kannst du hier Besatzung, Munition und Ausrüstung prüfen und das Fahrzeug einloggen.</div></div>
+            <div class="side-scroll" data-scroll="120"><div class="side-hint">Wähle links ein Fahrzeug aus.<br/><br/>Danach kannst du hier Besatzung, Munition und Ausrüstung prüfen und das Fahrzeug einloggen.</div></div>
             <div class="side-foot"><div class="lock off">Einloggen</div></div>
         </div>`;
     }
@@ -177,7 +177,7 @@ function renderSide() {
     const missing = d.crew.filter((m) => !m.tankman).length;
     return `
     <div class="side">
-        <div class="side-scroll" id="sideScroll">
+        <div class="side-scroll" id="sideScroll" data-scroll="120">
             <div class="hero" ${bg(d.image)}></div>
             <div class="veh-name">${esc(d.name)}</div>
             <div class="veh-sub">Stufe ${ROMAN[d.level] || d.level} · ${esc(TYPE_NAMES[d.type] || d.type)}</div>
@@ -228,7 +228,7 @@ function render() {
         <div class="main">
             <div class="left">
                 ${renderFilters(list.length)}
-                <div class="grid">${renderGrid(list)}</div>
+                <div class="grid" data-scroll="160">${renderGrid(list)}</div>
             </div>
             ${renderSide()}
         </div>`;
@@ -320,6 +320,39 @@ root.addEventListener("dblclick", (e) => {
     const v = data.vehicles.find((x) => x.cd === Number(el.getAttribute("data-cd")));
     if (v && v.ready && v.cd === data.selected) send({ action: "lock" });
 });
+
+// Gameface's native wheel scrolling is inverted and slow; scroll like WG's own
+// components do: direction from deltaY, fixed step per notch, short ease.
+const scrollAnim = new Map();
+
+function animateScroll(el, target) {
+    const max = Math.max(0, el.scrollHeight - el.clientHeight);
+    target = Math.max(0, Math.min(max, target));
+    scrollAnim.set(el, target);
+    const step = () => {
+        if (scrollAnim.get(el) !== target || !el.parentNode) return;
+        const cur = el.scrollTop;
+        const diff = target - cur;
+        if (Math.abs(diff) < 1) {
+            el.scrollTop = target;
+            scrollAnim.delete(el);
+            return;
+        }
+        el.scrollTop = cur + diff * 0.35;
+        requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+document.addEventListener("wheel", (e) => {
+    const el = closest(e.target, "data-scroll");
+    if (!el || e.deltaY === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const stepPx = Number(el.getAttribute("data-scroll")) || 100;
+    const base = scrollAnim.has(el) ? scrollAnim.get(el) : el.scrollTop;
+    animateScroll(el, base + (e.deltaY > 0 ? stepPx : -stepPx));
+}, { capture: true, passive: false });
 
 document.addEventListener("keydown", (e) => {
     if (e.keyCode === 27) {

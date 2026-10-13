@@ -31,7 +31,7 @@ from helpers import dependency
 from helpers.i18n import makeString
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_KEY = 'ez.tank_picker.view'
