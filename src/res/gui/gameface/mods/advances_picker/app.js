@@ -99,7 +99,7 @@ function renderHeader() {
         <div class="header-title">${esc(data.title || "Fahrzeug wählen")}</div>
         <div class="header-sub">Stufe ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} Fahrzeuge in der Garage</div>
         <div class="header-spacer"></div>
-        <div class="close-btn" data-act="close">×</div>
+        <div class="close-btn" data-act="close"><div class="close-x a"></div><div class="close-x b"></div></div>
     </div>`;
 }
 
@@ -120,7 +120,7 @@ function renderFilters(count) {
             ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
         </div>
         <div class="fgroup">
-            <input class="search" id="search" type="text" placeholder="Suchen…" value="${esc(ui.search)}" />
+            <div class="search-wrap ${ui.search ? "has-text" : ""}" id="searchWrap"><input class="search" id="search" type="text" value="${esc(ui.search)}" /><div class="search-ph">Suchen…</div></div>
             <div class="count">${count} / ${data.vehicles.length}</div>
         </div>
     </div>`;
@@ -504,6 +504,8 @@ function render() {
 
 function onSearch(e) {
     ui.search = e.target.value || "";
+    const wrap = document.getElementById("searchWrap");
+    if (wrap) wrap.className = `search-wrap ${ui.search ? "has-text" : ""}`;
     // only the grid depends on the search text; keep the input element alive
     const list = filtered();
     document.querySelector(".grid").innerHTML = renderGrid(list);

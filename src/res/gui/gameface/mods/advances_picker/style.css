@@ -54,17 +54,37 @@ body {
 }
 .header-spacer { flex-grow: 1; }
 .close-btn {
+    position: relative;
     width: 40rem;
     height: 40rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26rem;
-    color: #8a8c8c;
-    border: 1rem solid rgba(255, 255, 255, 0.12);
+    background-color: #b3261e;
+    border: 1rem solid #e0463c;
     border-radius: 4rem;
 }
-.close-btn:hover { color: #ffffff; border-color: rgba(255, 255, 255, 0.4); }
+.close-btn:hover { background-color: #d8382e; border-color: #ff6a5f; }
+.close-x {
+    position: absolute;
+    left: 8rem;
+    top: 17.5rem;
+    width: 22rem;
+    height: 3rem;
+    border-radius: 2rem;
+    background-color: #ffffff;
+}
+.close-x.a { transform: rotate(45deg); }
+.close-x.b { transform: rotate(-45deg); }
+
+/* search placeholder (Gameface does not draw placeholder text) */
+.search-wrap { position: relative; }
+.search-ph {
+    position: absolute;
+    left: 11rem;
+    top: 8rem;
+    color: #6f7171;
+    font-size: 15rem;
+    pointer-events: none;
+}
+.search-wrap.has-text .search-ph { display: none; }
 
 /* body */
 .main {
