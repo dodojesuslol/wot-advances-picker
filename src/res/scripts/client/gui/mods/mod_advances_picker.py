@@ -6,7 +6,9 @@
 # Dev mode: create <game>/mods/configs/advances_picker/dev.json with
 #   {"src": "X:/Projekte/wot-advances-picker/src"}
 # Then impl.py, app.js and style.css are read fresh from that folder every time the picker
-# opens (F5 inside the picker reopens it), and Ctrl+Shift+P opens it in the garage.
+# opens (F5 inside the picker reopens it). To open it in the garage: the "Advances Picker (Test)"
+# entry in the mods list button (ModsListAPI), or Ctrl+Shift+P (only if the garage UI does not
+# swallow the key - Gameface views keep keyboard focus most of the time).
 import json
 import logging
 import os
@@ -89,8 +91,28 @@ def _onKeyDown(event):
         _logger.exception('dev hotkey failed')
 
 
+def _registerModsList():
+    # dev only: clickable entry in Poliroid's mods list button (works regardless of keyboard focus)
+    if _devConfig() is None:
+        return
+    try:
+        from gui.modsListApi import g_modsListApi
+        g_modsListApi.addModification(
+            id='ez_tank_picker',
+            name='Advances Picker (Test)',
+            description='Öffnet den Vorstöße-Panzerwähler in der Garage (Entwickler-Modus, Stufe X)',
+            icon='gui/maps/icons/advances_picker/modslist.png',
+            enabled=True,
+            login=False,
+            lobby=True,
+            callback=lambda: _reopen((10,), (), 0))
+    except Exception:
+        _logger.exception('dev: mods list entry failed')
+
+
 FortVehicleSelectPopover._populate = _populate
 InputHandler.g_instance.onKeyDown += _onKeyDown
+_registerModsList()
 try:
     from advances_picker.impl import __version__
 except Exception:
