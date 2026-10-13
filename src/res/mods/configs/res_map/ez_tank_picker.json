@@ -1,0 +1,12 @@
+[
+    {
+        "itemID": "ez.tank_picker.view",
+        "type": "Layout",
+        "path": "coui://gui/gameface/mods/advances_picker/index.html",
+        "parameters": {
+            "entrance": "advances_picker",
+            "extension": "",
+            "impl": "gameface"
+        }
+    }
+]
