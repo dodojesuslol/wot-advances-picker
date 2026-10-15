@@ -66,6 +66,10 @@ function flagUrl(nation) {
     return `img://gui/maps/icons/filters/nations/${nation}.png`;
 }
 
+function bigFlagUrl(nation) {
+    return `img://gui/maps/icons/hangar/carousel/cards/flags/x400x300/${nation}.png`;
+}
+
 function typeUrl(type) {
     return `img://gui/maps/icons/filters/tanks/${type}.png`;
 }
@@ -162,6 +166,7 @@ function renderCard(v) {
     const sel = v.cd === data.selected;
     return `
     <div class="card ${sel ? "sel" : ""} ${v.ready ? "" : "dim"}" data-cd="${v.cd}">
+        <div class="flagbg" ${bg(bigFlagUrl(v.nation))}></div>
         <div class="tank" ${bg(v.icon)}></div>
         <div class="flag" ${bg(flagUrl(v.nation))}></div>
         <div class="typeicon" ${bg(typeUrl(v.type))}></div>
