@@ -182,6 +182,7 @@ body {
 }
 .card {
     position: relative;
+    box-sizing: border-box;
     width: 206rem;
     height: 142rem;
     margin: 0 10rem 10rem 0;
@@ -201,8 +202,8 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 160rem;
-    height: 120rem;
+    width: 180rem;
+    height: 135rem;
     background-size: 100% 100%;
     opacity: 0.55;
     transition: opacity 0.2s ease;
@@ -212,7 +213,8 @@ body {
 .card.dim .flagbg { opacity: 0.25; }
 .card .tank {
     position: absolute;
-    left: 23rem;
+    left: 50%;
+    margin-left: -80rem;
     top: 10rem;
     width: 160rem;
     height: 100rem;
@@ -831,3 +833,20 @@ body {
 .dd-row .pl-icon { width: 26rem; margin-right: 10rem; text-align: center; }
 .dd-name { flex-grow: 1; width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dd-n { margin-left: 8rem; font-size: 13rem; color: rgba(233, 231, 220, 0.45); }
+
+/* one filter row: search fills what is left, reset is a small icon button */
+.fgroup { margin-right: 14rem; }
+.fgroup.search-group { flex-grow: 1; margin-right: 0; }
+.search-group .search-wrap { flex-grow: 1; min-width: 140rem; }
+.search-group .search { box-sizing: border-box; width: 100%; }
+.toggle.reset { min-width: 34rem; padding: 0; }
+.reset-x {
+    width: 16rem;
+    height: 16rem;
+    background-image: url(img://gui/maps/icons/ui_kit/close_button/icon_extraSmall.png);
+    background-size: 100% 100%;
+}
+.toggle.reset:hover .reset-x { background-image: url(img://gui/maps/icons/ui_kit/close_button/icon_extraSmall_hover.png); }
+.toggle { min-width: 38rem; padding: 0 6rem; margin-right: 5rem; }
+.dd-btn { min-width: 160rem; }
+.search-group .search-wrap { min-width: 120rem; }

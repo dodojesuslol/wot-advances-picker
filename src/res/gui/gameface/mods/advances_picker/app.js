@@ -177,9 +177,9 @@ function renderFilters(count) {
         ${lists.length ? `<div class="fgroup"><div class="dd" data-ddwrap="1">${ddButton("playlist", "Playlist", pl ? esc(pl.title) : "")}${ddList("playlist")}</div></div>` : ""}
         <div class="fgroup">
             <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">Nur einsatzbereit</div>
-            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
+            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle reset" data-reset="1" title="Filter zurücksetzen"><div class="reset-x"></div></div>` : ""}
         </div>
-        <div class="fgroup">
+        <div class="fgroup search-group">
             <div class="search-wrap ${ui.search ? "has-text" : ""}" id="searchWrap"><input class="search" id="search" type="text" value="${esc(ui.search)}" /><div class="search-ph">Suchen…</div></div>
             <div class="count">${count} / ${data.vehicles.length}</div>
         </div>
@@ -655,7 +655,31 @@ function renderSide() {
     </div>`;
 }
 
+// cards stretch so the grid fills the whole width up to the side bar (min. 206 design px each)
+let cardWidth = 0;
+
+function fitCards() {
+    const rem = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 1;
+    const avail = window.innerWidth / rem - 481 - 32 - 24; // side bar + border, left padding
+    if (avail <= 0) return;
+    // every card has a 10 px right margin, the last one too
+    const cols = Math.max(1, Math.floor(avail / (206 + 10)));
+    const w = Math.floor(avail / cols) - 10 - 1;
+    if (w === cardWidth) return;
+    cardWidth = w;
+    let style = document.getElementById("cardWidth");
+    if (!style) {
+        style = document.createElement("style");
+        style.id = "cardWidth";
+        document.head.appendChild(style);
+    }
+    style.textContent = `.card { width: ${w}rem; }`;
+}
+
+window.addEventListener("resize", fitCards);
+
 function render() {
+    fitCards();
     const grid = document.querySelector(".grid");
     const side = document.getElementById("sideScroll");
     const gridScroll = grid ? grid.scrollTop : 0;
