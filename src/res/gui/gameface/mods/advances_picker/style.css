@@ -850,3 +850,6 @@ body {
 .toggle { min-width: 38rem; padding: 0 6rem; margin-right: 5rem; }
 .dd-btn { min-width: 160rem; }
 .search-group .search-wrap { min-width: 120rem; }
+/* search: fixed short width right next to "Nur einsatzbereit" */
+.fgroup.search-group { flex-grow: 0; }
+.search-group .search-wrap { flex-grow: 0; width: 200rem; min-width: 0; }
