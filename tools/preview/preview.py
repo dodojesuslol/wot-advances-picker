@@ -71,7 +71,7 @@ data = {'title': 'Fahrzeug wählen', 'vehicles': vehicles, 'selected': 1000 if s
         'detail': detail if state != 'empty' else None, 'dev': True, 'version': '0.11.0',
         'playlists': [{'id': 'p1', 'title': 'Advances', 'cds': [1000, 1001, 1004]}],
         'filters': {}}
-click = {'crewpop': '.member[data-slot="1"]', 'devpop': '[data-dev="1"]', 'nationdd': '[data-dd="nation"]', 'nationsel': '[data-dd="nation"]|[data-nation="germany"]|[data-nation="ussr"]'}.get(state, '')
+click = {'crewpop': '.member[data-slot="1"]', 'devpop': '[data-dev="1"]', 'nationdd': '[data-dd="playlist"]', 'nationsel': '[data-dd="nation"]|[data-nation="germany"]|[data-nation="ussr"]'}.get(state, '')
 html = '''<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 @font-face { font-family: Warhelios; src: url(file://%(res)s/gui/gameface/fonts/Warhelios-Regular.ttf); }
 @font-face { font-family: Warhelios; font-weight: bold; src: url(file://%(res)s/gui/gameface/fonts/Warhelios-Bold.ttf); }

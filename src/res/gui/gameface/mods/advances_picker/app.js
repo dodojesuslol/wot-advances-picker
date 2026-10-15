@@ -162,19 +162,19 @@ function ddList(key) {
 }
 
 function renderFilters(count) {
-    const nations = NATION_ORDER.filter((n) => ui.nations.has(n));
-    const types = TYPE_ORDER.filter((t) => ui.types.has(t));
-    const nationValue = nations.length === 1 ? esc(NATION_NAMES[nations[0]] || nations[0]) : nations.length ? `${nations.length} gewählt` : "";
-    const typeValue = types.length === 1 ? esc(TYPE_NAMES[types[0]]) : types.length ? `${types.length} gewählt` : "";
+    const nations = NATION_ORDER.filter((n) => data.vehicles.some((v) => v.nation === n));
+    const types = TYPE_ORDER.filter((t) => data.vehicles.some((v) => v.type === t));
     const lists = data.playlists || [];
     const pl = lists.find((p) => p.id === ui.playlist);
     return `
     <div class="filters">
         <div class="fgroup">
-            <div class="dd" data-ddwrap="1">${ddButton("nation", "Nation", nationValue)}${ddList("nation")}</div>
-            <div class="dd" data-ddwrap="1">${ddButton("type", "Klasse", typeValue)}${ddList("type")}</div>
-            ${lists.length ? `<div class="dd" data-ddwrap="1">${ddButton("playlist", "Playlist", pl ? esc(pl.title) : "")}${ddList("playlist")}</div>` : ""}
+            ${nations.map((n) => `<div class="toggle ${ui.nations.has(n) ? "on" : ""}" data-nation="${n}" title="${esc(NATION_NAMES[n] || n)}"><div class="img flag" ${bg(flagUrl(n))}></div></div>`).join("")}
         </div>
+        <div class="fgroup">
+            ${types.map((t) => `<div class="toggle ${ui.types.has(t) ? "on" : ""}" data-type="${t}" title="${esc(TYPE_NAMES[t])}"><div class="img typeicon" ${bg(typeUrl(t))}></div></div>`).join("")}
+        </div>
+        ${lists.length ? `<div class="fgroup"><div class="dd" data-ddwrap="1">${ddButton("playlist", "Playlist", pl ? esc(pl.title) : "")}${ddList("playlist")}</div></div>` : ""}
         <div class="fgroup">
             <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">Nur einsatzbereit</div>
             ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
