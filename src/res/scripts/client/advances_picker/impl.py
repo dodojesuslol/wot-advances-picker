@@ -2,7 +2,7 @@
 # Advances full-screen tank picker: implementation. Loaded by gui/mods/mod_advances_picker.py,
 # either as the packaged module or, in dev mode, straight from the project source.
 # View: tank list left, crew / ammo / equipment bar right, "lock in" puts the tank into the slot.
-# Needs net.openwg.gameface for the layout ID; fallback is WG's 2.0 picker.
+# Layout registered natively (WoT >= 2.4.1) via gui/gen_resources; fallback is WG's 2.0 picker.
 import json
 import logging
 import os
@@ -32,10 +32,10 @@ from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.9.2'
+__version__ = '0.10.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
-_LAYOUT_KEY = 'ez.tank_picker.view'
+_LAYOUT_PATH = ('ez_tank_picker', 'views', 'AdvancesPickerView')
 # set by the loader in dev mode: {'src': 'X:/.../src', 'reopen': callable(levelsRange, frozen, currentCD)}
 DEV = None
 _UI_DIR = 'res/gui/gameface/mods/advances_picker'
@@ -792,14 +792,15 @@ def _frozenCDs(popover):
 
 
 def _customLayoutID():
-    try:
-        from openwg_gameface import res_id_by_key
-        from gui.impl.gen_utils import INVALID_RES_ID
-        resID = res_id_by_key(_LAYOUT_KEY)
-        return None if resID == INVALID_RES_ID else resID
-    except Exception:
-        _logger.exception('openwg_gameface not available')
+    # R.mods.ez_tank_picker.views.AdvancesPickerView, from res/gui/gen_resources
+    node = getattr(R, 'mods', None)
+    for key in _LAYOUT_PATH:
+        node = node.dyn(key) if node is not None else None
+    resID = node() if node is not None else -1
+    if resID < 0:
+        _logger.error('layout %s not registered', '.'.join(_LAYOUT_PATH))
         return None
+    return resID
 
 
 def openFromPopover(popover):
