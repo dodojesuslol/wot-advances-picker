@@ -1,6 +1,6 @@
 <root>
     <id>ez.tank_picker</id>
-    <version>0.11.0</version>
+    <version>0.12.0</version>
     <name>Advances Fullscreen Tank Picker</name>
     <description>Opens the WoT 2.0 full-screen vehicle picker instead of the small tank popover in the Advances battle room.</description>
 </root>
