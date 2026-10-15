@@ -6,7 +6,7 @@
 # Dev mode: create <game>/mods/configs/advances_picker/dev.json with
 #   {"src": "X:/Projekte/wot-advances-picker/src"}
 # Then impl.py, app.js and style.css are read fresh from that folder every time the picker
-# opens (F5 inside the picker reopens it). To open it in the garage: the "Better Stronghold and Advanced Picker (Test)"
+# opens (F5 inside the picker reopens it). To open it in the garage: the "EZ TANK PICKER for ADV (Test)"
 # entry in the mods list button (ModsListAPI), or Ctrl+Shift+P (only if the garage UI does not
 # swallow the key - Gameface views keep keyboard focus most of the time).
 import json
@@ -99,7 +99,7 @@ def _registerModsList():
         from gui.modsListApi import g_modsListApi
         g_modsListApi.addModification(
             id='ez_tank_picker',
-            name='Better Stronghold and Advanced Picker (Test)',
+            name='EZ TANK PICKER for ADV (Test)',
             description='Öffnet den Vorstöße-Panzerwähler in der Garage (Entwickler-Modus, Stufe X)',
             icon='gui/maps/icons/advances_picker/modslist.png',
             enabled=True,

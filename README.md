@@ -1,4 +1,4 @@
-# Better Stronghold and Advanced Picker (WoT EU 2.4.1)
+# EZ TANK PICKER for ADV (WoT EU 2.4.1)
 
 Replaces the small Flash tank popover in the Advances (stronghold) battle room with the
 WoT 2.0 full-screen vehicle picker (`gui.impl.lobby.select_vehicle`), limited to the tanks
