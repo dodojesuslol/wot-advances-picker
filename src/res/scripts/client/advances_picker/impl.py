@@ -27,15 +27,29 @@ from gui.shared.gui_items.items_actions import factory as ActionsFactory
 from gui.shared.gui_items.processors.tankman import TankmanReturn
 from gui.shared.gui_items.Vehicle import VEHICLE_TYPES_ORDER, getIconPath, getIconShopPath, getSmallIconPath
 from gui.shared.utils.requesters import REQ_CRITERIA
-from helpers import dependency
+from helpers import dependency, getClientLanguage
 from helpers.i18n import makeString
 from skeletons.gui.game_control import IVehiclePlaylistsController, IWotPlusController
 from skeletons.gui.shared import IItemsCache
 
-__version__ = '0.12.3'
+__version__ = '0.13.0'
 _logger = logging.getLogger('ADVANCES_PICKER')
 _logger.setLevel(logging.INFO)
 _LAYOUT_PATH = ('ez_tank_picker', 'views', 'AdvancesPickerView')
+
+
+def _lang():
+    # UI language: German on a German client, English everywhere else
+    try:
+        return 'de' if (getClientLanguage() or '').lower().startswith('de') else 'en'
+    except Exception:
+        return 'en'
+
+
+def _L(de, en):
+    return de if _lang() == 'de' else en
+
+
 # set by the loader in dev mode: {'src': 'X:/.../src', 'reopen': callable(levelsRange, frozen, currentCD)}
 DEV = None
 _UI_DIR = 'res/gui/gameface/mods/advances_picker'
@@ -112,9 +126,9 @@ def _isFrozen(frozenCDs, intCD):
 
 def _stateText(vehicle, frozenCDs):
     if not vehicle.isReadyToFight:
-        return _u(convertState(vehicle.getState()[0])) or u'Nicht einsatzbereit'
+        return _u(convertState(vehicle.getState()[0])) or _L(u'Nicht einsatzbereit', u'Not ready')
     if _isFrozen(frozenCDs, vehicle.intCD):
-        return u'Eingefroren'
+        return _L(u'Eingefroren', u'Frozen')
     return u''
 
 
@@ -216,6 +230,7 @@ class AdvancesPickerView(ViewImpl):
              'state': state})
         return {'title': _u(makeString(FORTIFICATIONS.STRONGHOLDPOPOVER_HEADER)),
          'version': __version__,
+         'lang': _lang(),
          'dev': bool(DEV),
          'selected': self._selectedCD,
          'vehicles': items,
@@ -585,7 +600,7 @@ class AdvancesPickerView(ViewImpl):
                 cd, count = part.split(':', 1)
                 counts[int(cd)] = max(0, int(count))
         if sum(counts.values()) > vehicle.ammoMaxSize:
-            SystemMessages.pushMessage(u'Zu viel Munition (max. %d)' % vehicle.ammoMaxSize, type=SystemMessages.SM_TYPE.Warning)
+            SystemMessages.pushMessage(_L(u'Zu viel Munition (max. %d)', u'Too much ammo (max. %d)') % vehicle.ammoMaxSize, type=SystemMessages.SM_TYPE.Warning)
             return
         copy = self._itemsCache.items.getVehicleCopy(vehicle)
         layout = copy.shells.layout

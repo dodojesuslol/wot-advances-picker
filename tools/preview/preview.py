@@ -3,6 +3,7 @@
 import json, sys
 src, res, out = sys.argv[1], sys.argv[2], sys.argv[3]
 state = sys.argv[4] if len(sys.argv) > 4 else 'detail'
+lang = sys.argv[5] if len(sys.argv) > 5 else 'de'
 css = open(src + '/style.css').read().replace('img://', 'file://' + res + '/')
 js = open(src + '/app.js').read().replace('img://', 'file://' + res + '/')
 
@@ -68,7 +69,7 @@ detail = {'cd': 1000, 'name': 'E 100', 'level': 10, 'type': 'heavyTank', 'ready'
           'consumableSetups': None,
           'autoEquip': {'enabled': True, 'hasSets': True, 'busy': False}}
 data = {'title': 'Fahrzeug wählen', 'vehicles': vehicles, 'selected': 1000 if state != 'empty' else 0,
-        'detail': detail if state != 'empty' else None, 'dev': True, 'version': '0.11.0',
+        'detail': detail if state != 'empty' else None, 'dev': True, 'version': '0.13.0', 'lang': lang,
         'playlists': [{'id': 'p1', 'title': 'Advances', 'cds': [1000, 1001, 1004]}],
         'filters': {}}
 click = {'crewpop': '.member[data-slot="1"]', 'devpop': '[data-dev="1"]', 'nationdd': '[data-dd="playlist"]', 'nationsel': '[data-dd="nation"]|[data-nation="germany"]|[data-nation="ussr"]'}.get(state, '')

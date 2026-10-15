@@ -3,8 +3,25 @@
 
 const NATION_ORDER = ["germany", "ussr", "usa", "china", "france", "uk", "japan", "czech", "sweden", "poland", "italy"];
 const TYPE_ORDER = ["lightTank", "mediumTank", "heavyTank", "AT-SPG", "SPG"];
-const TYPE_NAMES = { lightTank: "Leichte Panzer", mediumTank: "Mittlere Panzer", heavyTank: "Schwere Panzer", "AT-SPG": "Jagdpanzer", SPG: "Artillerie" };
-const NATION_NAMES = { germany: "Deutschland", ussr: "UdSSR", usa: "USA", china: "China", france: "Frankreich", uk: "Großbritannien", japan: "Japan", czech: "Tschechoslowakei", sweden: "Schweden", poland: "Polen", italy: "Italien" };
+// UI language comes from the game client (data.lang): "de" = German, everything else English
+function L(de, en) {
+    return data.lang === "de" ? de : en;
+}
+const TYPE_NAMES_I18N = {
+    de: { lightTank: "Leichte Panzer", mediumTank: "Mittlere Panzer", heavyTank: "Schwere Panzer", "AT-SPG": "Jagdpanzer", SPG: "Artillerie" },
+    en: { lightTank: "Light tanks", mediumTank: "Medium tanks", heavyTank: "Heavy tanks", "AT-SPG": "Tank destroyers", SPG: "SPGs" },
+};
+const NATION_NAMES_I18N = {
+    de: { germany: "Deutschland", ussr: "UdSSR", usa: "USA", china: "China", france: "Frankreich", uk: "Großbritannien", japan: "Japan", czech: "Tschechoslowakei", sweden: "Schweden", poland: "Polen", italy: "Italien" },
+    en: { germany: "Germany", ussr: "U.S.S.R.", usa: "U.S.A.", china: "China", france: "France", uk: "U.K.", japan: "Japan", czech: "Czechoslovakia", sweden: "Sweden", poland: "Poland", italy: "Italy" },
+};
+const CAT_NAMES_I18N = {
+    de: { firepower: "Feuerkraft", survivability: "Überlebensfähigkeit", mobility: "Mobilität", stealth: "Tarnung" },
+    en: { firepower: "Firepower", survivability: "Survivability", mobility: "Mobility", stealth: "Stealth" },
+};
+// switched by applyLang() whenever new data arrives
+let TYPE_NAMES = TYPE_NAMES_I18N.en;
+let NATION_NAMES = NATION_NAMES_I18N.en;
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
 
 const ui = {
@@ -22,7 +39,14 @@ const ui = {
     openFilter: "", // open filter dropdown: "nation" | "type" | "playlist"
 };
 
-const CAT_NAMES = { firepower: "Feuerkraft", survivability: "Überlebensfähigkeit", mobility: "Mobilität", stealth: "Tarnung" };
+let CAT_NAMES = CAT_NAMES_I18N.en;
+
+function applyLang() {
+    const lang = data.lang === "de" ? "de" : "en";
+    TYPE_NAMES = TYPE_NAMES_I18N[lang];
+    NATION_NAMES = NATION_NAMES_I18N[lang];
+    CAT_NAMES = CAT_NAMES_I18N[lang];
+}
 let data = { vehicles: [], detail: null, selected: 0 };
 let filtersLoaded = false;
 
@@ -107,9 +131,9 @@ function renderHeader() {
     <div class="header">
         <div class="h-left">
             <div class="header-bar"></div>
-            <div class="header-title">${esc(data.title || "Fahrzeug wählen")}</div>
-            <div class="header-sub">Stufe ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} Fahrzeuge in der Garage</div>
-            ${data.dev ? `<div class="dev-badge">DEV ${esc(data.version || "")} · F5 = neu laden</div>` : ""}
+            <div class="header-title">${esc(data.title || L("Fahrzeug wählen", "Select vehicle"))}</div>
+            <div class="header-sub">${L("Stufe", "Tier")} ${esc(levels.join(", ") || "-")} · ${data.vehicles.length} ${L("Fahrzeuge in der Garage", "vehicles in the garage")}</div>
+            ${data.dev ? `<div class="dev-badge">DEV ${esc(data.version || "")} · F5 = ${L("neu laden", "reload")}</div>` : ""}
         </div>
         <div class="h-center" id="headerLock">${renderLock()}</div>
         <div class="h-right">
@@ -122,18 +146,18 @@ function renderHeader() {
 function renderLock() {
     const d = data.detail;
     if (!d) {
-        return `<div class="lock off">Einloggen</div><div class="foot-note">Wähle zuerst ein Fahrzeug</div>`;
+        return `<div class="lock off">${L("Einloggen", "Lock in")}</div><div class="foot-note">${L("Wähle zuerst ein Fahrzeug", "Select a vehicle first")}</div>`;
     }
     const pendingAmmo = ammoChanged(d);
     const aeBusy = !!(d.autoEquip && d.autoEquip.busy);
-    const note = aeBusy ? "Auto-Equip baut gerade die Ausrüstung ein…" : pendingAmmo ? "Erst die Munitionsänderung übernehmen oder zurücksetzen" : d.ready ? `${esc(d.name)} in deinen Slot setzen` : esc(d.state);
-    return `<div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">Einloggen</div><div class="foot-note">${note}</div>`;
+    const note = aeBusy ? L("Auto-Equip baut gerade die Ausrüstung ein…", "Auto-Equip is installing equipment…") : pendingAmmo ? L("Erst die Munitionsänderung übernehmen oder zurücksetzen", "Apply or reset the ammo change first") : d.ready ? L(`${esc(d.name)} in deinen Slot setzen`, `Put ${esc(d.name)} into your slot`) : esc(d.state);
+    return `<div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">${L("Einloggen", "Lock in")}</div><div class="foot-note">${note}</div>`;
 }
 
 function ddButton(key, label, value) {
     const open = ui.openFilter === key;
     return `<div class="dd-btn ${open ? "open" : ""} ${value ? "set" : ""}" data-dd="${key}">
-        <span class="dd-label">${label}</span><span class="dd-value">${value || "Alle"}</span><span class="dd-chev">${open ? "▴" : "▾"}</span></div>`;
+        <span class="dd-label">${label}</span><span class="dd-value">${value || L("Alle", "All")}</span><span class="dd-chev">${open ? "▴" : "▾"}</span></div>`;
 }
 
 function ddRow(attr, value, on, icon, name, n) {
@@ -157,7 +181,7 @@ function ddList(key) {
         any = !!ui.playlist;
         rows = (data.playlists || []).map((p) => ddRow("data-playlist", p.id, ui.playlist === p.id, `<div class="pl-icon">≡</div>`, p.title, data.vehicles.filter((v) => p.cds.indexOf(v.cd) !== -1).length)).join("");
     }
-    const all = `<div class="dd-row all ${any ? "" : "on"}" data-ddclear="${key}"><div class="dd-check">${any ? "" : "✓"}</div><div class="dd-name">Alle</div><div class="dd-n">${data.vehicles.length}</div></div>`;
+    const all = `<div class="dd-row all ${any ? "" : "on"}" data-ddclear="${key}"><div class="dd-check">${any ? "" : "✓"}</div><div class="dd-name">${L("Alle", "All")}</div><div class="dd-n">${data.vehicles.length}</div></div>`;
     return `<div class="dd-list" data-scroll="80">${all}${rows}</div>`;
 }
 
@@ -176,11 +200,11 @@ function renderFilters(count) {
         </div>
         ${lists.length ? `<div class="fgroup"><div class="dd" data-ddwrap="1">${ddButton("playlist", "Playlist", pl ? esc(pl.title) : "")}${ddList("playlist")}</div></div>` : ""}
         <div class="fgroup">
-            <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">Nur einsatzbereit</div>
-            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle reset" data-reset="1" title="Filter zurücksetzen"><div class="reset-x"></div></div>` : ""}
+            <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">${L("Nur einsatzbereit", "Ready only")}</div>
+            ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle reset" data-reset="1" title="${L("Filter zurücksetzen", "Reset filters")}"><div class="reset-x"></div></div>` : ""}
         </div>
         <div class="fgroup search-group">
-            <div class="search-wrap ${ui.search ? "has-text" : ""}" id="searchWrap"><input class="search" id="search" type="text" value="${esc(ui.search)}" /><div class="search-ph">Suchen…</div></div>
+            <div class="search-wrap ${ui.search ? "has-text" : ""}" id="searchWrap"><input class="search" id="search" type="text" value="${esc(ui.search)}" /><div class="search-ph">${L("Suchen…", "Search…")}</div></div>
             <div class="count">${count} / ${data.vehicles.length}</div>
         </div>
     </div>`;
@@ -196,13 +220,13 @@ function renderCard(v) {
         <div class="typeicon" ${bg(typeUrl(v.type))}></div>
         <div class="tier">${ROMAN[v.level] || v.level}</div>
         <div class="name ${v.premium ? "premium" : ""}">${esc(v.name)}</div>
-        ${v.ready ? `<div class="badge ok">Einsatzbereit</div>` : `<div class="badge bad">${esc(v.state)}</div>`}
+        ${v.ready ? `<div class="badge ok">${L("Einsatzbereit", "Ready")}</div>` : `<div class="badge bad">${esc(v.state)}</div>`}
     </div>`;
 }
 
 function renderGrid(list) {
     if (!list.length) {
-        return `<div class="empty">Keine Fahrzeuge für diese Filter.</div>`;
+        return `<div class="empty">${L("Keine Fahrzeuge für diese Filter.", "No vehicles match these filters.")}</div>`;
     }
     return `<div class="grid-inner">${list.map(renderCard).join("")}</div>`;
 }
@@ -211,27 +235,27 @@ function renderCrewSummary(d) {
     const total = d.crew.length;
     const present = d.crew.filter((m) => m.tankman).length;
     const untrained = d.crew.filter((m) => m.tankman && !m.tankman.native).length;
-    const parts = [`<span class="sum-part">${present}/${total} besetzt</span>`];
-    if (present < total) parts.push(`<span class="sum-part warn">${total - present} fehlt</span>`);
-    if (untrained) parts.push(`<span class="sum-part warn">${untrained} nicht ausgebildet</span>`);
-    if (present === total && !untrained) parts.push(`<span class="sum-part ok-text">alles in Ordnung</span>`);
+    const parts = [`<span class="sum-part">${present}/${total} ${L("besetzt", "assigned")}</span>`];
+    if (present < total) parts.push(`<span class="sum-part warn">${total - present} ${L("fehlt", "missing")}</span>`);
+    if (untrained) parts.push(`<span class="sum-part warn">${untrained} ${L("nicht ausgebildet", "untrained")}</span>`);
+    if (present === total && !untrained) parts.push(`<span class="sum-part ok-text">${L("alles in Ordnung", "all good")}</span>`);
     return `<div class="summary" data-collapse="crew">${parts.join("")}</div>`;
 }
 
 function crewPickHtml(m) {
     const t = m.tankman;
     const rows = m.candidates.map((c) => {
-        const tag = c.native ? `<div class="tag native">ausgebildet</div>` : `<div class="tag other">${esc(c.nativeName)}</div>`;
-        const where = c.where ? `in ${esc(c.where)}` : "Kaserne";
+        const tag = c.native ? `<div class="tag native">${L("ausgebildet", "trained")}</div>` : `<div class="tag other">${esc(c.nativeName)}</div>`;
+        const where = c.where ? `${L("in", "in")} ${esc(c.where)}` : L("Kaserne", "Barracks");
         return `<div class="pick-row" data-equip="${c.id}" data-slot="${m.slot}">
-            <div class="n">${esc(c.name)}</div>${tag}<div class="d">${where}${c.skills ? ` · ${c.skills} Fert.` : ""}</div>
+            <div class="n">${esc(c.name)}</div>${tag}<div class="d">${where}${c.skills ? ` · ${c.skills} ${L("Fert.", "skills")}` : ""}</div>
         </div>`;
     });
     if (t) {
-        rows.push(`<div class="pick-row remove" data-unload="${m.slot}"><div class="n">In die Kaserne schicken</div></div>`);
+        rows.push(`<div class="pick-row remove" data-unload="${m.slot}"><div class="n">${L("In die Kaserne schicken", "Send to barracks")}</div></div>`);
     }
     if (!m.candidates.length) {
-        rows.unshift(`<div class="pick-row"><div class="n muted">Keine passenden ${esc(m.roleName)} dieser Nation verfügbar</div></div>`);
+        rows.unshift(`<div class="pick-row"><div class="n muted">${L(`Keine passenden ${esc(m.roleName)} dieser Nation verfügbar`, `No matching ${esc(m.roleName)} of this nation available`)}</div></div>`);
     }
     return `<div class="pick-head">${esc(m.roleName)}</div><div class="pick" data-scroll="70">${rows.join("")}</div>`;
 }
@@ -241,10 +265,10 @@ function renderMember(m, d) {
     const open = ui.openSlot === m.slot;
     let who;
     if (t) {
-        const info = t.native ? (t.skills ? `${t.skills} Fert.` : "") : `nicht ausgebildet (${esc(t.nativeName)})`;
+        const info = t.native ? (t.skills ? `${t.skills} ${L("Fert.", "skills")}` : "") : `${L("nicht ausgebildet", "untrained")} (${esc(t.nativeName)})`;
         who = `<div class="n">${esc(t.name)}</div>${info ? `<div class="d ${t.native ? "" : "warn"}">${info}</div>` : ""}`;
     } else {
-        who = `<div class="n warn">fehlt – klicken zum Zuweisen</div>`;
+        who = `<div class="n warn">${L("fehlt – klicken zum Zuweisen", "missing – click to assign")}</div>`;
     }
     const eff = t && t.eff != null ? `${t.eff}%` : "";
     let html = `
@@ -258,11 +282,11 @@ function renderMember(m, d) {
 }
 
 function fmt(n) {
-    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, L(".", ","));
 }
 
 function currencyName(c) {
-    return c === "gold" ? "Gold" : c === "crystal" ? "Anleihen" : "Credits";
+    return c === "gold" ? "Gold" : c === "crystal" ? L("Anleihen", "Bonds") : "Credits";
 }
 
 function ammoCounts(d) {
@@ -302,7 +326,7 @@ function renderAmmo(d) {
             <div class="abbr ${s.premium ? "prem" : ""}">${esc(s.abbr)}</div>
             <div class="shell-info">
                 <div class="shell-title">${esc(s.name)}</div>
-                <div class="shell-stats">${s.pen} mm · ${s.damage} HP · Lager ${s.depot}${buy ? ` · <span class="accent">${buy} kaufen</span>` : ""}</div>
+                <div class="shell-stats">${s.pen} mm · ${s.damage} HP · ${L("Lager", "Depot")} ${s.depot}${buy ? ` · <span class="accent">${L(`${buy} kaufen`, `buy ${buy}`)}</span>` : ""}</div>
             </div>
             <div class="step ${n <= 0 ? "off" : ""}" data-ammo="${s.cd}" data-delta="-1">-</div>
             <div class="slider" data-slider="${s.cd}">
@@ -317,15 +341,15 @@ function renderAmmo(d) {
     }).join("");
     return `
     <div class="section">
-        <div class="section-title"><div class="grow collapsible" data-collapse="ammo"><span class="chev-s">${ui.collapsed.ammo ? "▸" : "▾"}</span>Munition</div><div class="${total < d.ammoMax ? "warn" : "muted"}">${total} / ${d.ammoMax}</div></div>
-        ${ui.collapsed.ammo ? `<div class="summary" data-collapse="ammo">${d.shells.map((x) => `<span class="abbr ${x.premium ? "prem" : ""}">${esc(x.abbr)}</span><span class="sum-n">${counts[x.cd]}</span>`).join("")}${changed ? `<span class="accent">geändert</span>` : ""}</div>` : rows}
+        <div class="section-title"><div class="grow collapsible" data-collapse="ammo"><span class="chev-s">${ui.collapsed.ammo ? "▸" : "▾"}</span>${L("Munition", "Ammunition")}</div><div class="${total < d.ammoMax ? "warn" : "muted"}">${total} / ${d.ammoMax}</div></div>
+        ${ui.collapsed.ammo ? `<div class="summary" data-collapse="ammo">${d.shells.map((x) => `<span class="abbr ${x.premium ? "prem" : ""}">${esc(x.abbr)}</span><span class="sum-n">${counts[x.cd]}</span>`).join("")}${changed ? `<span class="accent">${L("geändert", "changed")}</span>` : ""}</div>` : rows}
         ${ui.collapsed.ammo && !changed ? "" : `<div class="ammo-tools">
-            <div class="btn small ${full ? "off" : ""}" data-ammo-fill="1">Auffüllen</div>
-            ${changed ? `<div class="btn small" data-ammo-reset="1">Zurücksetzen</div>` : ""}
+            <div class="btn small ${full ? "off" : ""}" data-ammo-fill="1">${L("Auffüllen", "Refill")}</div>
+            ${changed ? `<div class="btn small" data-ammo-reset="1">${L("Zurücksetzen", "Reset")}</div>` : ""}
             <div class="grow"></div>
-            ${costText ? `<div class="ammo-cost">Kosten: <span class="accent">${costText}</span></div>` : changed ? `<div class="ammo-cost muted">Aus dem Lager, kostenlos</div>` : ""}
+            ${costText ? `<div class="ammo-cost">${L("Kosten", "Cost")}: <span class="accent">${costText}</span></div>` : changed ? `<div class="ammo-cost muted">${L("Aus dem Lager, kostenlos", "From depot, free")}</div>` : ""}
         </div>`}
-        ${changed ? `<div class="apply" data-ammo-apply="1">Munition übernehmen${costText ? ` · ${costText}` : ""}</div>` : ""}
+        ${changed ? `<div class="apply" data-ammo-apply="1">${L("Munition übernehmen", "Apply ammo")}${costText ? ` · ${costText}` : ""}</div>` : ""}
     </div>`;
 }
 
@@ -414,13 +438,13 @@ function applyAmmo() {
 
 function itemTag(it) {
     if (it.deluxe) return `<span class="itag deluxe">Bond</span>`;
-    if (it.modernized) return `<span class="itag trophy">Experimentell</span>`;
+    if (it.modernized) return `<span class="itag trophy">${L("Experimentell", "Experimental")}</span>`;
     if (it.trophy) return `<span class="itag trophy">Bounty</span>`;
     return "";
 }
 
 // equipment tiers top -> bottom: bounty, standard, bond, experimental
-const TIERS = ["Bounty", "Standard", "Bond", "Experimentell"];
+const TIERS = ["Bounty", "Standard", "Bond", "Experimental"]; // index 3 is translated at render time
 function itemTier(it) {
     if (it.trophy) return 0;
     if (it.modernized) return 3;
@@ -446,13 +470,13 @@ function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
     list.forEach((c) => {
         if (tiered && itemTier(c) !== lastTier) {
             lastTier = itemTier(c);
-            rows.push(`<div class="pick-group">${TIERS[lastTier]}</div>`);
+            rows.push(`<div class="pick-group">${lastTier === 3 ? L("Experimentell", "Experimental") : TIERS[lastTier]}</div>`);
         }
         rows.push(`
         <div class="pick-row" data-set${kind}="${c.cd}" data-pslot="${slot}">
             <div class="pick-ico" ${bg(c.icon)}></div>
             <div class="n">${esc(c.name)}</div>${catDots(c.cats)}${catBonus(c, slotCats) ? `<div class="tag native">Bonus</div>` : ""}${tiered ? "" : itemTag(c)}
-            <div class="d">×${c.depot} im Lager</div>
+            <div class="d">×${c.depot} ${L("im Lager", "in depot")}</div>
         </div>`);
     });
     if (!candidates.length) {
@@ -461,10 +485,10 @@ function renderPickList(kind, slot, current, candidates, slotCats, emptyText) {
     let note = "";
     if (current) {
         const free = kind === "cons" || current.freeDemount;
-        const how = !free ? "kostet Gold oder Demontageset" : current.wotPlusFree ? "kostenlos mit WoT Plus" : "kostenlos, zurück ins Lager";
-        rows.push(`<div class="pick-row remove" data-set${kind}="0" data-pslot="${slot}"><div class="n">${esc(current.name)} ausbauen</div><div class="d">${how}</div></div>`);
+        const how = !free ? L("kostet Gold oder Demontageset", "costs gold or a demounting kit") : current.wotPlusFree ? L("kostenlos mit WoT Plus", "free with WoT Plus") : L("kostenlos, zurück ins Lager", "free, back to depot");
+        rows.push(`<div class="pick-row remove" data-set${kind}="0" data-pslot="${slot}"><div class="n">${L(`${esc(current.name)} ausbauen`, `Demount ${esc(current.name)}`)}</div><div class="d">${how}</div></div>`);
         if (!free) {
-            note = `<div class="pick-note">${esc(current.name)} ist nicht kostenlos ausbaubar. Beim Tauschen zeigt WG vorher den Preis (Gold / Demontageset).</div>`;
+            note = `<div class="pick-note">${L(`${esc(current.name)} ist nicht kostenlos ausbaubar. Beim Tauschen zeigt WG vorher den Preis (Gold / Demontageset).`, `${esc(current.name)} can't be demounted for free. When swapping, WG shows the price first (gold / demounting kit).`)}</div>`;
         }
     }
     return `<div class="pick" data-scroll="70">${note}${rows.join("")}</div>`;
@@ -481,11 +505,11 @@ function popupContent() {
     }
     if (ui.openDev !== -1) {
         const s = d.devices.find((x) => x.slot === ui.openDev);
-        return s ? { html: `<div class="pick-head">Ausrüstung · Slot ${s.slot + 1}</div>` + renderPickList("dev", s.slot, s.item, s.candidates, s.slotCats, "Keine passende Ausrüstung im Lager"), anchor: `[data-dev="${s.slot}"]` } : null;
+        return s ? { html: `<div class="pick-head">${L("Ausrüstung", "Equipment")} · Slot ${s.slot + 1}</div>` + renderPickList("dev", s.slot, s.item, s.candidates, s.slotCats, L("Keine passende Ausrüstung im Lager", "No matching equipment in depot")), anchor: `[data-dev="${s.slot}"]` } : null;
     }
     if (ui.openCons !== -1) {
         const s = d.consumables.find((x) => x.slot === ui.openCons);
-        return s ? { html: `<div class="pick-head">Verbrauchsmaterial · Slot ${s.slot + 1}</div>` + renderPickList("cons", s.slot, s.item, s.candidates, [], "Kein passendes Verbrauchsmaterial im Lager"), anchor: `[data-cons="${s.slot}"]` } : null;
+        return s ? { html: `<div class="pick-head">${L("Verbrauchsmaterial", "Consumables")} · Slot ${s.slot + 1}</div>` + renderPickList("cons", s.slot, s.item, s.candidates, [], L("Kein passendes Verbrauchsmaterial im Lager", "No matching consumables in depot")), anchor: `[data-cons="${s.slot}"]` } : null;
     }
     return null;
 }
@@ -549,13 +573,13 @@ function renderAutoEquip(d) {
     const ae = d.autoEquip;
     if (!ae) return "";
     let state;
-    if (ae.busy) state = `<span class="accent">baut gerade ein…</span>`;
-    else if (!ae.hasSets) state = `<span class="muted">keine Sets gespeichert</span>`;
-    else if (!ae.enabled) state = `<span class="muted">Sets gespeichert · Automatik aus</span>`;
-    else state = `<span class="ok-text">Sets gespeichert · Automatik an</span>`;
+    if (ae.busy) state = `<span class="accent">${L("baut gerade ein…", "installing…")}</span>`;
+    else if (!ae.hasSets) state = `<span class="muted">${L("keine Sets gespeichert", "no sets saved")}</span>`;
+    else if (!ae.enabled) state = `<span class="muted">${L("Sets gespeichert · Automatik aus", "sets saved · auto off")}</span>`;
+    else state = `<span class="ok-text">${L("Sets gespeichert · Automatik an", "sets saved · auto on")}</span>`;
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Auto-Equip</div>${ae.hasSets && !ae.busy ? `<div class="btn small" data-act="autoEquipApply">Sets jetzt einbauen</div>` : ""}</div>
+        <div class="section-title"><div class="grow">Auto-Equip</div>${ae.hasSets && !ae.busy ? `<div class="btn small" data-act="autoEquipApply">${L("Sets jetzt einbauen", "Install sets now")}</div>` : ""}</div>
         <div class="ae-state">${state}</div>
     </div>`;
 }
@@ -564,14 +588,14 @@ function renderAutoEquip(d) {
 function renderSetups(ds, note) {
     if (!ds) return { setupHead: "", otherSetup: "" };
     const other = ds.active === 0 ? 1 : 0;
-    const setupHead = `<div class="setup-head"><span class="setup-tag on">Set ${ds.active + 1} · aktiv</span><span class="muted">bearbeitbar</span></div>`;
+    const setupHead = `<div class="setup-head"><span class="setup-tag on">Set ${ds.active + 1} · ${L("aktiv", "active")}</span><span class="muted">${L("bearbeitbar", "editable")}</span></div>`;
     const items = (ds.sets[other] || []).map((it) => `
         <div class="slot mini ${it ? "" : "free"}">
             <div class="ico" ${it ? bg(it.icon) : ""}></div>
-            <div class="t">${it ? esc(it.name) : "leer"}</div>
+            <div class="t">${it ? esc(it.name) : L("leer", "empty")}</div>
         </div>`).join("");
     const otherSetup = `
-        <div class="setup-head"><span class="setup-tag">Set ${other + 1}</span>${note ? `<span class="muted">${note}</span>` : ""}<div class="grow"></div><div class="btn small" data-setup="${other}" data-group="${ds.group}">Set ${other + 1} aktivieren</div></div>
+        <div class="setup-head"><span class="setup-tag">Set ${other + 1}</span>${note ? `<span class="muted">${note}</span>` : ""}<div class="grow"></div><div class="btn small" data-setup="${other}" data-group="${ds.group}">${L(`Set ${other + 1} aktivieren`, `Activate set ${other + 1}`)}</div></div>
         <div class="slots">${items}</div>`;
     return { setupHead, otherSetup };
 }
@@ -585,7 +609,7 @@ function renderDevices(d) {
         <div class="slot dev ${it ? "" : "free"} ${open ? "open" : ""}" data-dev="${s.slot}">
             <div class="stripes">${stripe}</div>
             <div class="ico" ${it ? bg(it.icon) : ""}></div>
-            <div class="t">${it ? esc(it.name) : "leer"}</div>
+            <div class="t">${it ? esc(it.name) : L("leer", "empty")}</div>
             <div class="slot-tags">${it ? itemTag(it) : ""}${catBonus(it, s.slotCats) ? `<span class="itag bonus">Bonus</span>` : ""}</div>
         </div>`;
     }).join("");
@@ -593,7 +617,7 @@ function renderDevices(d) {
     const { setupHead, otherSetup } = renderSetups(ds, "");
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Ausrüstung${ds ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="section-title"><div class="grow">${L("Ausrüstung", "Equipment")}${ds ? " · 2 Sets" : ""}</div><div class="muted">${L("nur aus dem Lager", "depot only")}</div></div>
         ${setupHead}
         <div class="slots">${cards}</div>
         ${otherSetup}
@@ -607,14 +631,14 @@ function renderConsumables(d) {
         return `
         <div class="slot cons ${it ? "" : "free"} ${open ? "open" : ""}" data-cons="${s.slot}">
             <div class="ico" ${it ? bg(it.icon) : ""}></div>
-            <div class="t">${it ? esc(it.name) : "leer"}</div>
+            <div class="t">${it ? esc(it.name) : L("leer", "empty")}</div>
         </div>`;
     }).join("");
     const cs = d.consumableSetups;
-    const { setupHead, otherSetup } = renderSetups(cs, "wechselt auch das Munitions-Set");
+    const { setupHead, otherSetup } = renderSetups(cs, L("wechselt auch das Munitions-Set", "also switches the ammo set"));
     return `
     <div class="section">
-        <div class="section-title"><div class="grow">Verbrauchsmaterial${cs ? " · 2 Sets" : ""}</div><div class="muted">nur aus dem Lager</div></div>
+        <div class="section-title"><div class="grow">${L("Verbrauchsmaterial", "Consumables")}${cs ? " · 2 Sets" : ""}</div><div class="muted">${L("nur aus dem Lager", "depot only")}</div></div>
         ${setupHead}
         <div class="slots">${cards}</div>
         ${otherSetup}
@@ -626,7 +650,7 @@ function renderSide() {
     if (!d) {
         return `
         <div class="side">
-            <div class="side-scroll" data-scroll="120"><div class="side-hint">Wähle links ein Fahrzeug aus.<br/><br/>Danach kannst du hier Besatzung, Munition und Ausrüstung prüfen und das Fahrzeug einloggen.</div></div>
+            <div class="side-scroll" data-scroll="120"><div class="side-hint">${L("Wähle links ein Fahrzeug aus.<br/><br/>Danach kannst du hier Besatzung, Munition und Ausrüstung prüfen und das Fahrzeug einloggen.", "Select a vehicle on the left.<br/><br/>Then you can check crew, ammo and equipment here and lock the vehicle in.")}</div></div>
         </div>`;
     }
     const missing = d.crew.filter((m) => !m.tankman).length;
@@ -634,15 +658,15 @@ function renderSide() {
     <div class="side">
         <div class="side-scroll" id="sideScroll" data-scroll="120">
             <div class="veh-name">${esc(d.name)}</div>
-            <div class="veh-sub">Stufe ${ROMAN[d.level] || d.level} · ${esc(TYPE_NAMES[d.type] || d.type)}</div>
-            ${d.ready ? `<div class="state ok">Einsatzbereit</div>` : `<div class="state bad">${esc(d.state)}</div>`}
+            <div class="veh-sub">${L("Stufe", "Tier")} ${ROMAN[d.level] || d.level} · ${esc(TYPE_NAMES[d.type] || d.type)}</div>
+            ${d.ready ? `<div class="state ok">${L("Einsatzbereit", "Ready")}</div>` : `<div class="state bad">${esc(d.state)}</div>`}
 
             <div class="section">
-                <div class="section-title"><div class="grow collapsible" data-collapse="crew"><span class="chev-s">${ui.collapsed.crew ? "▸" : "▾"}</span>Besatzung${missing ? ` · <span class="warn">${missing} fehlt</span>` : ""}</div>
-                    ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">Zurückholen</div>` : ""}
-                    <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1" title="Letzte Besatzung beim Anklicken automatisch zurückholen">Auto: ${ui.autoCrew ? "an" : "aus"}</div>
+                <div class="section-title"><div class="grow collapsible" data-collapse="crew"><span class="chev-s">${ui.collapsed.crew ? "▸" : "▾"}</span>${L("Besatzung", "Crew")}${missing ? ` · <span class="warn">${missing} ${L("fehlt", "missing")}</span>` : ""}</div>
+                    ${d.canReturnCrew && !d.crewLocked ? `<div class="btn small" data-act="returnCrew">${L("Zurückholen", "Return crew")}</div>` : ""}
+                    <div class="btn small switch ${ui.autoCrew ? "on" : ""}" data-autocrew="1" title="${L("Letzte Besatzung beim Anklicken automatisch zurückholen", "Return the last crew automatically when a tank is clicked")}">Auto: ${ui.autoCrew ? L("an", "on") : L("aus", "off")}</div>
                 </div>
-                ${d.crewLocked ? `<div class="muted" style="margin-bottom: 8rem;">Besatzung ist gerade gesperrt (Fahrzeug im Zug/Gefecht).</div>` : ""}
+                ${d.crewLocked ? `<div class="muted" style="margin-bottom: 8rem;">${L("Besatzung ist gerade gesperrt (Fahrzeug im Zug/Gefecht).", "Crew is locked right now (vehicle in platoon/battle).")}</div>` : ""}
                 ${ui.collapsed.crew ? renderCrewSummary(d) : d.crew.map((m) => renderMember(m, d)).join("")}
             </div>
 
@@ -936,6 +960,7 @@ function readModel() {
         if (ui.playlist && !(next.playlists || []).some((p) => p.id === ui.playlist)) ui.playlist = "";
         if (!next.detail || !data.detail || next.detail.cd !== data.detail.cd) ui.ammo = null;
         data = next;
+        applyLang();
         render();
     } catch (e) {
         console.error("advances_picker: bad model data", e);
