@@ -673,7 +673,8 @@ function fitCards() {
         style.id = "cardWidth";
         document.head.appendChild(style);
     }
-    style.textContent = `.card { width: ${w}rem; }`;
+    // filter bar ends exactly at the right edge of the last card in a row
+    style.textContent = `.card { width: ${w}rem; } .filters { box-sizing: border-box; width: ${cols * (w + 10) - 10}rem; }`;
 }
 
 window.addEventListener("resize", fitCards);

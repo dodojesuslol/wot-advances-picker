@@ -853,3 +853,5 @@ body {
 /* search: fixed short width right next to "Nur einsatzbereit" */
 .fgroup.search-group { flex-grow: 0; }
 .search-group .search-wrap { flex-grow: 0; width: 200rem; min-width: 0; }
+.fgroup { margin-right: 10rem; }
+.search-group .search-wrap { width: 170rem; }
