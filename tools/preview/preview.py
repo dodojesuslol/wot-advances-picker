@@ -71,7 +71,7 @@ data = {'title': 'Fahrzeug wählen', 'vehicles': vehicles, 'selected': 1000 if s
         'detail': detail if state != 'empty' else None, 'dev': True, 'version': '0.11.0',
         'playlists': [{'id': 'p1', 'title': 'Advances', 'cds': [1000, 1001, 1004]}],
         'filters': {}}
-click = {'crewpop': '.member[data-slot="1"]', 'devpop': '[data-dev="1"]'}.get(state, '')
+click = {'crewpop': '.member[data-slot="1"]', 'devpop': '[data-dev="1"]', 'nationdd': '[data-dd="nation"]', 'nationsel': '[data-dd="nation"]|[data-nation="germany"]|[data-nation="ussr"]'}.get(state, '')
 html = '''<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 @font-face { font-family: Warhelios; src: url(file://%(res)s/gui/gameface/fonts/Warhelios-Regular.ttf); }
 @font-face { font-family: Warhelios; font-weight: bold; src: url(file://%(res)s/gui/gameface/fonts/Warhelios-Bold.ttf); }
@@ -83,6 +83,6 @@ window.model = { data: %(data)s, dev: "", onAction: function (a) { console.log(J
 window.engine = { whenReady: Promise.resolve(), on: function () {} };
 window.viewEnv = { addDataChangedCallback: function () {} };
 </script><script>%(js)s</script><script>
-engine.whenReady.then(function () {}).then(function () { var s = %(click)s; if (s) document.querySelector(s).click(); });
+engine.whenReady.then(function () {}).then(function () { var s = %(click)s; if (s) s.split('|').forEach(function (q) { document.querySelector(q).click(); }); });
 </script></body></html>''' % {'res': res, 'css': css, 'js': js, 'data': json.dumps(json.dumps(data).replace('img://', 'file://' + res + '/')), 'click': json.dumps(click)}
 open(out, 'w').write(html)

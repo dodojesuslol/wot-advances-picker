@@ -4,6 +4,7 @@
 const NATION_ORDER = ["germany", "ussr", "usa", "china", "france", "uk", "japan", "czech", "sweden", "poland", "italy"];
 const TYPE_ORDER = ["lightTank", "mediumTank", "heavyTank", "AT-SPG", "SPG"];
 const TYPE_NAMES = { lightTank: "Leichte Panzer", mediumTank: "Mittlere Panzer", heavyTank: "Schwere Panzer", "AT-SPG": "Jagdpanzer", SPG: "Artillerie" };
+const NATION_NAMES = { germany: "Deutschland", ussr: "UdSSR", usa: "USA", china: "China", france: "Frankreich", uk: "Großbritannien", japan: "Japan", czech: "Tschechoslowakei", sweden: "Schweden", poland: "Polen", italy: "Italien" };
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
 
 const ui = {
@@ -18,6 +19,7 @@ const ui = {
     ammo: null, // pending shell counts {cd: count} for data.detail.cd
     openDev: -1,
     openCons: -1,
+    openFilter: "", // open filter dropdown: "nation" | "type" | "playlist"
 };
 
 const CAT_NAMES = { firepower: "Feuerkraft", survivability: "Überlebensfähigkeit", mobility: "Mobilität", stealth: "Tarnung" };
@@ -128,18 +130,51 @@ function renderLock() {
     return `<div class="lock ${d.ready && !pendingAmmo && !aeBusy ? "" : "off"}" data-act="lock">Einloggen</div><div class="foot-note">${note}</div>`;
 }
 
+function ddButton(key, label, value) {
+    const open = ui.openFilter === key;
+    return `<div class="dd-btn ${open ? "open" : ""} ${value ? "set" : ""}" data-dd="${key}">
+        <span class="dd-label">${label}</span><span class="dd-value">${value || "Alle"}</span><span class="dd-chev">${open ? "▴" : "▾"}</span></div>`;
+}
+
+function ddRow(attr, value, on, icon, name, n) {
+    return `<div class="dd-row ${on ? "on" : ""} ${n ? "" : "empty"}" ${attr}="${esc(value)}">
+        <div class="dd-check">${on ? "✓" : ""}</div>${icon}<div class="dd-name">${esc(name)}</div><div class="dd-n">${n}</div></div>`;
+}
+
+function ddList(key) {
+    if (ui.openFilter !== key) return "";
+    let rows = "";
+    let any = false;
+    if (key === "nation") {
+        any = ui.nations.size > 0;
+        rows = NATION_ORDER.filter((n) => data.vehicles.some((v) => v.nation === n))
+            .map((n) => ddRow("data-nation", n, ui.nations.has(n), `<div class="img flag" ${bg(flagUrl(n))}></div>`, NATION_NAMES[n] || n, data.vehicles.filter((v) => v.nation === n).length)).join("");
+    } else if (key === "type") {
+        any = ui.types.size > 0;
+        rows = TYPE_ORDER.filter((t) => data.vehicles.some((v) => v.type === t))
+            .map((t) => ddRow("data-type", t, ui.types.has(t), `<div class="img typeicon" ${bg(typeUrl(t))}></div>`, TYPE_NAMES[t], data.vehicles.filter((v) => v.type === t).length)).join("");
+    } else if (key === "playlist") {
+        any = !!ui.playlist;
+        rows = (data.playlists || []).map((p) => ddRow("data-playlist", p.id, ui.playlist === p.id, `<div class="pl-icon">≡</div>`, p.title, data.vehicles.filter((v) => p.cds.indexOf(v.cd) !== -1).length)).join("");
+    }
+    const all = `<div class="dd-row all ${any ? "" : "on"}" data-ddclear="${key}"><div class="dd-check">${any ? "" : "✓"}</div><div class="dd-name">Alle</div><div class="dd-n">${data.vehicles.length}</div></div>`;
+    return `<div class="dd-list" data-scroll="80">${all}${rows}</div>`;
+}
+
 function renderFilters(count) {
-    const nations = NATION_ORDER.filter((n) => data.vehicles.some((v) => v.nation === n));
-    const types = TYPE_ORDER.filter((t) => data.vehicles.some((v) => v.type === t));
+    const nations = NATION_ORDER.filter((n) => ui.nations.has(n));
+    const types = TYPE_ORDER.filter((t) => ui.types.has(t));
+    const nationValue = nations.length === 1 ? esc(NATION_NAMES[nations[0]] || nations[0]) : nations.length ? `${nations.length} gewählt` : "";
+    const typeValue = types.length === 1 ? esc(TYPE_NAMES[types[0]]) : types.length ? `${types.length} gewählt` : "";
+    const lists = data.playlists || [];
+    const pl = lists.find((p) => p.id === ui.playlist);
     return `
     <div class="filters">
         <div class="fgroup">
-            ${nations.map((n) => `<div class="toggle ${ui.nations.has(n) ? "on" : ""}" data-nation="${n}"><div class="img flag" ${bg(flagUrl(n))}></div></div>`).join("")}
+            <div class="dd" data-ddwrap="1">${ddButton("nation", "Nation", nationValue)}${ddList("nation")}</div>
+            <div class="dd" data-ddwrap="1">${ddButton("type", "Klasse", typeValue)}${ddList("type")}</div>
+            ${lists.length ? `<div class="dd" data-ddwrap="1">${ddButton("playlist", "Playlist", pl ? esc(pl.title) : "")}${ddList("playlist")}</div>` : ""}
         </div>
-        <div class="fgroup">
-            ${types.map((t) => `<div class="toggle ${ui.types.has(t) ? "on" : ""}" data-type="${t}" title="${esc(TYPE_NAMES[t])}"><div class="img typeicon" ${bg(typeUrl(t))}></div></div>`).join("")}
-        </div>
-        ${renderPlaylists()}
         <div class="fgroup">
             <div class="toggle ${ui.readyOnly ? "on" : ""}" data-ready="1">Nur einsatzbereit</div>
             ${ui.nations.size || ui.types.size || ui.readyOnly || ui.search || ui.playlist ? `<div class="toggle" data-reset="1">Filter zurücksetzen</div>` : ""}
@@ -149,17 +184,6 @@ function renderFilters(count) {
             <div class="count">${count} / ${data.vehicles.length}</div>
         </div>
     </div>`;
-}
-
-function renderPlaylists() {
-    const lists = data.playlists || [];
-    if (!lists.length) return "";
-    const chips = lists.map((p) => {
-        const n = data.vehicles.filter((v) => p.cds.indexOf(v.cd) !== -1).length;
-        return `<div class="toggle pl ${ui.playlist === p.id ? "on" : ""} ${n ? "" : "empty"}" data-playlist="${esc(p.id)}">
-            <span class="pl-icon">≡</span>${esc(p.title)}<span class="pl-count">${n}</span></div>`;
-    }).join("");
-    return `<div class="fgroup playlists">${chips}</div>`;
 }
 
 function renderCard(v) {
@@ -693,7 +717,23 @@ root.addEventListener("click", (e) => {
         closePopups();
         placePopup();
     }
-    if ((el = closest(e.target, "data-nation"))) {
+    if (ui.openFilter && !closest(e.target, "data-ddwrap")) {
+        ui.openFilter = "";
+        render();
+    }
+    if ((el = closest(e.target, "data-dd"))) {
+        const key = el.getAttribute("data-dd");
+        ui.openFilter = ui.openFilter === key ? "" : key;
+        render();
+    } else if ((el = closest(e.target, "data-ddclear"))) {
+        const key = el.getAttribute("data-ddclear");
+        if (key === "nation") ui.nations.clear();
+        else if (key === "type") ui.types.clear();
+        else ui.playlist = "";
+        ui.openFilter = "";
+        render();
+        saveFilters();
+    } else if ((el = closest(e.target, "data-nation"))) {
         const n = el.getAttribute("data-nation");
         ui.nations.has(n) ? ui.nations.delete(n) : ui.nations.add(n);
         render();
@@ -716,6 +756,7 @@ root.addEventListener("click", (e) => {
     } else if ((el = closest(e.target, "data-playlist"))) {
         const id = el.getAttribute("data-playlist");
         ui.playlist = ui.playlist === id ? "" : id;
+        ui.openFilter = "";
         render();
         saveFilters();
     } else if (closest(e.target, "data-ready")) {
@@ -844,7 +885,10 @@ document.addEventListener("keydown", (e) => {
         return;
     }
     if (e.keyCode === 27) {
-        if (ui.openSlot !== -1 || ui.openDev !== -1 || ui.openCons !== -1) {
+        if (ui.openFilter) {
+            ui.openFilter = "";
+            render();
+        } else if (ui.openSlot !== -1 || ui.openDev !== -1 || ui.openCons !== -1) {
             ui.openSlot = ui.openDev = ui.openCons = -1;
             render();
         } else {
